@@ -1,3 +1,20 @@
-.venv
-__pycache__
-.vscode
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual env
+.venv/
+venv/
+
+# VS Code
+.vscode/
+
+# PyCharm / altri IDE
+.idea/
+
+# Varie
+*.log
+*.sqlite3
+.env
