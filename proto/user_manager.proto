@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package usermanager; //lo inseriamo per evitare conflitti tra messaggi/servizi con lo stesso nome in file diversi.
+
+// Servizio ----------------------
+
+service UserManager {
+  rpc RegisterUser(RegisterUserRequest) returns (UserResponse);
+  rpc DeleteUser(DeleteUserRequest) returns (UserResponse);
+  rpc CheckUserExists(CheckUserExistsRequest) returns (CheckUserExistsResponse);
+}
+
+// Messaggi ----------------------
+
+message User {
+  string email = 1;
+  string CF = 2;
+  string password = 3;
+}
+
+message RegisterUserRequest {
+  User user = 1;
+}
+
+message DeleteUserRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message UserResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message CheckUserExistsRequest {
+  string email = 1;
+}
+
+message CheckUserExistsResponse {
+  bool exists = 1;
+}
