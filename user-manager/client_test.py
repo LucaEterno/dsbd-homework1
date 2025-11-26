@@ -84,6 +84,32 @@ def run():
         print_response("RegisterUser", response)
 
         # ------------------------------------------------------------
+        print("\n[TEST 1.2] RegisterUser - nuovo utente 'rosario'")
+        response = stub.RegisterUser(
+            user_manager_pb2.RegisterUserRequest(
+                user=user_manager_pb2.User(
+                    email="rosario@example.com",
+                    CF="RSR54321Z",
+                    password="pass123"
+                )
+            )
+        )
+        print_response("RegisterUser", response)
+
+        # ------------------------------------------------------------
+        print("\n[TEST 1.3] RegisterUser - nuovo utente 'maria'")
+        response = stub.RegisterUser(
+            user_manager_pb2.RegisterUserRequest(
+                user=user_manager_pb2.User(
+                    email="maria@example.com",
+                    CF="MRA98765W",
+                    password="pass456"
+                )
+            )
+        )
+        print_response("RegisterUser", response)
+
+        # ------------------------------------------------------------
         print("\n[TEST 2] CheckUserExists('alice@example.com')")
         response = stub.CheckUserExists(
             user_manager_pb2.CheckUserExistsRequest(

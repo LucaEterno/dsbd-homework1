@@ -31,11 +31,11 @@ class UserManagerService(user_manager_pb2_grpc.UserManagerServicer):
                 password="usermgrpwd",
             )
             self.conn.autocommit = True  # così non dobbiamo chiamare conn.commit() ogni volta
-            self.cursor = self.conn.cursor(dictionary=True)
+            self.cursor = self.conn.cursor(dictionary=True) #dictionary=True per avere dizionari come risultati anziché tuple di righe
             print("Connessione a MySQL effettuata con successo\n")
         except Error as e:
             print(f"Errore di connessione a MySQL: {e}")
-            raise #fermo il server se non riesco a connettermi
+            raise
 
     def RegisterUser(self, request, context):
         """
