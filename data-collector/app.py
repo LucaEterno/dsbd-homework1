@@ -7,7 +7,6 @@ Data Collector Service (prima versione)
 
 from flask import Flask, request, jsonify
 import grpc
-import mysql.connector
 from mysql.connector import Error
 import os
 import sys
@@ -18,7 +17,7 @@ from flight_services import (
 )
 
 # Aggiungo il path del microservizio user-manager per importare i file gRPC
-#DA MIDIFICARE PERCHE NON SICURA
+#DA MODIFICARE PERCHE NON SICURA
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 USER_MANAGER_DIR = os.path.join(CURRENT_DIR, "..", "user-manager")
 sys.path.append(USER_MANAGER_DIR)
@@ -33,43 +32,9 @@ def get_user_manager_stub():
     Crea un client gRPC per comunicare con lo User Manager.
     Per ora si assume che User Manager sia in ascolto su localhost:50051.
     """
-    #DOVREI INSERIRE UN MUTEX PER NON SOVRASCRIVERE LE OPERAZIONI DI LETTURA/SCRITTURA?
     channel = grpc.insecure_channel("localhost:50051")
     stub = user_manager_pb2_grpc.UserManagerStub(channel)
     return stub
-
-
-@app.route("/airport/<airport_code>/refresh-flights", methods=["POST"])
-def refresh_flights_for_airport(airport_code):
-    """
-    Endpoint REST che usa la logica di flight_service.refresh_flights_for_airport_logic.
-    """
-
-    data = request.get_json(silent=True) or {} # silent=True -> se il body non è JSON valido, non genera errore
-    hours = data.get("hours", 24) # parametro per specificare quante ore indietro prendere i voli
-    direction = data.get("direction", "both")
-
-    try:
-        hours = int(hours)
-    except (TypeError, ValueError):
-        return jsonify({"error": "Invalid 'hours' value"}), 400
-
-    if direction not in ("arrival", "departure", "both"):
-        return jsonify({"error": "direction must be 'arrival', 'departure' or 'both'"}), 400
-
-    try:
-        result = refresh_flights_for_airport_logic(airport_code, hours, direction)
-        return jsonify(result), 200
-    except ValueError as e:
-        # errori di validazione lato servizio
-        return jsonify({"error": str(e)}), 400
-    except RuntimeError as e:
-        # errori provenienti da OpenSky
-        return jsonify({"error": str(e)}), 502
-    except Exception as e:
-        print(f"Errore inatteso in refresh_flights_for_airport endpoint: {e}")
-        return jsonify({"error": "unexpected error"}), 500
-
 
 
 @app.route("/user/airports", methods=["POST"])
@@ -222,14 +187,119 @@ def get_user_airports():
         conn.close()
 
 
-#DA DECIDERE SE MANTENERE O RIMUOVERE
-@app.route("/health", methods=["GET"])
-def health_check():
+@app.route("/user/airports", methods=["DELETE"])
+def delete_user_airports():
     """
-    Endpoint di health-check molto semplice.
-    Serve solo a verificare che il Data Collector sia up.
+    Rimuove le associazioni utente-aeroporto.
+
+    Body JSON:
+    {
+      "email": "user@example.com",
+      "password": "pwd123",
+      "airport_code": "LICC",              # opzionale
+    }
+
+    - Se viene passato solo 'email'    -> cancella TUTTE le associazioni per quell'utente
+    - Se viene passato anche 'airport_code' -> cancella SOLO quella specifica coppia
     """
-    return jsonify({"status": "ok", "service": "data-collector"}), 200
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
+
+    email = data.get("email")
+    password = data.get("password")
+    airport_code = data.get("airport_code")
+
+    if not email or not password:
+        return jsonify({"error": "Missing 'email' or 'password'"}), 400
+
+    # 1) Verifico le credenziali via gRPC con UserManager
+    try:
+        stub = get_user_manager_stub()
+        cred_req = user_manager_pb2.CheckUserCredentialsRequest(
+            email=email,
+            password=password
+        )
+        cred_res = stub.CheckUserCredentials(cred_req)
+    except grpc.RpcError as e:
+        print(f"Errore gRPC verso UserManager in delete_user_airports: {e}")
+        return jsonify({"error": "UserManager not reachable"}), 500
+
+    if not cred_res.valid:
+        print(f"[DataCollector] FAILED: credenziali non valide per '{email}' in DELETE /user/airports")
+        return jsonify({
+            "success": False,
+            "message": "invalid credentials"
+        }), 401
+
+    conn = get_db_connection()
+    if conn is None:
+        return jsonify({"error": "Could not connect to flightdata_db"}), 500
+    
+    # 2) Eseguo la cancellazione
+    try:
+        cursor = conn.cursor()
+
+        if airport_code:
+            print(f"[DataCollector] DELETE associazione utente '{email}' con aeroporto '{airport_code}'")
+            sql_delete = "DELETE FROM user_airports WHERE user_email = %s AND airport_code = %s"
+            params = (email, airport_code)
+        else:
+            print(f"[DataCollector] DELETE tutte le associazioni per utente '{email}'")
+            sql_delete = "DELETE FROM user_airports WHERE user_email = %s"
+            params = (email,)
+
+        cursor.execute(sql_delete, params)
+        conn.commit()
+        deleted = cursor.rowcount
+
+        return jsonify({
+            "success": True,
+            "deleted": deleted,
+            "email": email,
+            "airport_code": airport_code
+        }), 200
+
+    except Error as e:
+        print(f"Errore DB in delete_user_airports: {e}")
+        return jsonify({"error": "Database error"}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route("/airport/<airport_code>/refresh-flights", methods=["POST"])
+def refresh_flights_for_airport(airport_code):
+    """
+    Endpoint REST che usa la logica di flight_service.refresh_flights_for_airport_logic.
+    """
+
+    data = request.get_json(silent=True) or {} # silent=True -> se il body non è JSON valido, non genera errore
+    hours = data.get("hours", 24) # parametro per specificare quante ore indietro prendere i voli
+    direction = data.get("direction", "both")
+
+    try:
+        hours = int(hours)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid 'hours' value"}), 400
+
+    if direction not in ("arrival", "departure", "both"):
+        return jsonify({"error": "direction must be 'arrival', 'departure' or 'both'"}), 400
+
+    try:
+        result = refresh_flights_for_airport_logic(airport_code, hours, direction)
+        return jsonify(result), 200
+    except ValueError as e:
+        # errori di validazione lato servizio
+        return jsonify({"error": str(e)}), 400
+    except RuntimeError as e:
+        # errori provenienti da OpenSky
+        return jsonify({"error": str(e)}), 502
+    except Exception as e:
+        print(f"Errore inatteso in refresh_flights_for_airport endpoint: {e}")
+        return jsonify({"error": "unexpected error"}), 500
 
 
 if __name__ == "__main__":

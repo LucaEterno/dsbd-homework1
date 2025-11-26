@@ -24,25 +24,21 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12user_manager.proto\x12\x0busermanager\"3\n\x04User\x12\r\n\x05\x65mail\x18\x01 \x01(\t\x12\n\n\x02\x43\x46\x18\x02 \x01(\t\x12\x10\n\x08password\x18\x03 \x01(\t\"6\n\x13RegisterUserRequest\x12\x1f\n\x04user\x18\x01 \x01(\x0b\x32\x11.usermanager.User\"4\n\x11\x44\x65leteUserRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"0\n\x0cUserResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"\'\n\x16\x43heckUserExistsRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t\")\n\x17\x43heckUserExistsResponse\x12\x0e\n\x06\x65xists\x18\x01 \x01(\x08\x32\x81\x02\n\x0bUserManager\x12K\n\x0cRegisterUser\x12 .usermanager.RegisterUserRequest\x1a\x19.usermanager.UserResponse\x12G\n\nDeleteUser\x12\x1e.usermanager.DeleteUserRequest\x1a\x19.usermanager.UserResponse\x12\\\n\x0f\x43heckUserExists\x12#.usermanager.CheckUserExistsRequest\x1a$.usermanager.CheckUserExistsResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12user_manager.proto\x12\x0busermanager\"\'\n\x16\x43heckUserExistsRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t\")\n\x17\x43heckUserExistsResponse\x12\x0e\n\x06\x65xists\x18\x01 \x01(\x08\">\n\x1b\x43heckUserCredentialsRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"-\n\x1c\x43heckUserCredentialsResponse\x12\r\n\x05valid\x18\x01 \x01(\x08\x32\xd8\x01\n\x0bUserManager\x12\\\n\x0f\x43heckUserExists\x12#.usermanager.CheckUserExistsRequest\x1a$.usermanager.CheckUserExistsResponse\x12k\n\x14\x43heckUserCredentials\x12(.usermanager.CheckUserCredentialsRequest\x1a).usermanager.CheckUserCredentialsResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'user_manager_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_USER']._serialized_start=35
-  _globals['_USER']._serialized_end=86
-  _globals['_REGISTERUSERREQUEST']._serialized_start=88
-  _globals['_REGISTERUSERREQUEST']._serialized_end=142
-  _globals['_DELETEUSERREQUEST']._serialized_start=144
-  _globals['_DELETEUSERREQUEST']._serialized_end=196
-  _globals['_USERRESPONSE']._serialized_start=198
-  _globals['_USERRESPONSE']._serialized_end=246
-  _globals['_CHECKUSEREXISTSREQUEST']._serialized_start=248
-  _globals['_CHECKUSEREXISTSREQUEST']._serialized_end=287
-  _globals['_CHECKUSEREXISTSRESPONSE']._serialized_start=289
-  _globals['_CHECKUSEREXISTSRESPONSE']._serialized_end=330
-  _globals['_USERMANAGER']._serialized_start=333
-  _globals['_USERMANAGER']._serialized_end=590
+  _globals['_CHECKUSEREXISTSREQUEST']._serialized_start=35
+  _globals['_CHECKUSEREXISTSREQUEST']._serialized_end=74
+  _globals['_CHECKUSEREXISTSRESPONSE']._serialized_start=76
+  _globals['_CHECKUSEREXISTSRESPONSE']._serialized_end=117
+  _globals['_CHECKUSERCREDENTIALSREQUEST']._serialized_start=119
+  _globals['_CHECKUSERCREDENTIALSREQUEST']._serialized_end=181
+  _globals['_CHECKUSERCREDENTIALSRESPONSE']._serialized_start=183
+  _globals['_CHECKUSERCREDENTIALSRESPONSE']._serialized_end=228
+  _globals['_USERMANAGER']._serialized_start=231
+  _globals['_USERMANAGER']._serialized_end=447
 # @@protoc_insertion_point(module_scope)
