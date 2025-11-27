@@ -6,6 +6,8 @@ HTTP/REST server per User Manager.
 Queste API sono pensate per i client esterni (es. UI, script, ecc.).
 Il Data Collector continua a usare il gRPC per CheckUserExists.
 """
+import os
+import requests
 
 from flask import Flask, request, jsonify
 import mysql.connector
@@ -15,16 +17,15 @@ import requests
 
 app = Flask(__name__)
 
-
+ 
 def get_db_connection():
     try:
         conn = mysql.connector.connect(
-            host="127.0.0.1",
-            port=3306,
-            #password: rootpwd
-            database="usermanager_db",
-            user="usermgr",
-            password="usermgrpwd",
+            host=os.getenv("USER_DB_HOST", "127.0.0.1"),
+            port=int(os.getenv("USER_DB_PORT", "3306")),
+            database=os.getenv("USER_DB_NAME", "usermanager_db"),
+            user=os.getenv("USER_DB_USER", "usermgr"),
+            password=os.getenv("USER_DB_PASSWORD", "usermgrpwd"),
         )
         return conn
     except Error as e:
@@ -135,7 +136,8 @@ def delete_user():
 
         # 2) Notifico il Data Collector per rimuovere le associazioni utente-aeroporto
         try:
-            dc_url = "http://127.0.0.1:5000/user/airports"
+            dc_base = os.getenv("DATACOLLECTOR_BASE_URL", "http://127.0.0.1:5000")
+            dc_url = f"{dc_base}/user/airports"
             payload = {"email": email, "password": password}
 
             print(f"[HTTP UserManager] Notifico Data Collector per cancellare associazioni di '{email}'")

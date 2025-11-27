@@ -1,10 +1,3 @@
-"""
-Data Collector Service (prima versione)
-- Espone una semplice API HTTP con Flask
-- Verifica l'esistenza dell'utente tramite User Manager (gRPC)
-- Memorizza gli aeroporti di interesse per utente nel DB flightdata_db
-"""
-
 from flask import Flask, request, jsonify
 import grpc
 from mysql.connector import Error
@@ -32,7 +25,9 @@ def get_user_manager_stub():
     Crea un client gRPC per comunicare con lo User Manager.
     Per ora si assume che User Manager sia in ascolto su localhost:50051.
     """
-    channel = grpc.insecure_channel("localhost:50051")
+    um_host = os.getenv("USERMANAGER_GRPC_HOST", "127.0.0.1")
+    um_port = int(os.getenv("USERMANAGER_GRPC_PORT", "50051"))
+    channel = grpc.insecure_channel(f"{um_host}:{um_port}")
     stub = user_manager_pb2_grpc.UserManagerStub(channel)
     return stub
 

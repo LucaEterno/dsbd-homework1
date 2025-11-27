@@ -11,16 +11,15 @@ from opensky_auth import get_opensky_token
 
 def get_db_connection():
     """
-    Connessione al DB dei voli (flightdata_db) nel container 'flightdata-mysql'.
+    Connessione al DB dei voli (flightdata_db).
     """
     try:
         conn = mysql.connector.connect(
-            host="127.0.0.1",
-            port=3307,
-            #password: flightrootpwd
-            database="flightdata_db",
-            user="flightuser",
-            password="flightpwd",
+            host=os.getenv("FLIGHT_DB_HOST", "127.0.0.1"),
+            port=int(os.getenv("FLIGHT_DB_PORT", "3307")),
+            database=os.getenv("FLIGHT_DB_NAME", "flightdata_db"),
+            user=os.getenv("FLIGHT_DB_USER", "flightuser"),
+            password=os.getenv("FLIGHT_DB_PASSWORD", "flightpwd"),
         )
         return conn
     except Error as e:

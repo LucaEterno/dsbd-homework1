@@ -1,3 +1,4 @@
+import os
 import grpc
 from concurrent import futures
 import mysql.connector
@@ -16,11 +17,11 @@ class UserManagerService(user_manager_pb2_grpc.UserManagerServicer):
     def __init__(self):
         try:
             self.conn = mysql.connector.connect(
-                host="127.0.0.1",
-                port=3306,
-                database="usermanager_db",
-                user="usermgr",
-                password="usermgrpwd",
+                host=os.getenv("USER_DB_HOST", "127.0.0.1"),
+                port=int(os.getenv("USER_DB_PORT", "3306")),
+                database=os.getenv("USER_DB_NAME", "usermanager_db"),
+                user=os.getenv("USER_DB_USER", "usermgr"),
+                password=os.getenv("USER_DB_PASSWORD", "usermgrpwd"),
             )
             self.conn.autocommit = True
             self.cursor = self.conn.cursor(dictionary=True)
