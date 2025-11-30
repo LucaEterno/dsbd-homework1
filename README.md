@@ -431,11 +431,3 @@ docker-compose up -d
 **Problema**: OpenSky API errori 401/403
 - Verificare credenziali CLIENT_ID e CLIENT_SECRET
 - Controllare rate limits dell'API
-
-## 👨‍💻 Autore
-
-Luca Eterno - [GitHub](https://github.com/LucaEterno)
-
-## 📄 Licenza
-
-Questo progetto è distribuito sotto licenza MIT - vedi il file [LICENSE](LICENSE) per i dettagli.
