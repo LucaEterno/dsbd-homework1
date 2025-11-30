@@ -1,0 +1,514 @@
+{
+	"info": {
+		"_postman_id": "cc378433-8210-4fbd-948e-9d4ecbef50a7",
+		"name": "DSBD-HW1",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "50269869",
+		"_collection_link": "https://rosario32-3880256.postman.co/workspace/Rosario's-Workspace~71f68a61-f64a-4ccf-8cb6-8fe7fec592ef/collection/50269869-cc378433-8210-4fbd-948e-9d4ecbef50a7?action=share&source=collection_link&creator=50269869"
+	},
+	"item": [
+		{
+			"name": "REGISTRAZIONE UTENTE 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "requestID",
+						"value": "1",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"email\": \"mario.rossi@example.com\",\r\n  \"password\": \"Password123!\",\r\n  \"cf\": \"RSSMRA80A01H501Z\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{UserManagerURL}}/users/register",
+					"host": [
+						"{{UserManagerURL}}"
+					],
+					"path": [
+						"users",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "REGISTRAZIONE UTENTE 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "requestID",
+						"value": "2",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"user@example.com\",\r\n    \"password\": \"pwd123\",\r\n    \"cf\": \"CODICEFISCALE\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{UserManagerURL}}/users/register",
+					"host": [
+						"{{UserManagerURL}}"
+					],
+					"path": [
+						"users",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "CANCELLAZIONE UTENTE 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "requestID",
+						"value": "3",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"email\": \"mario.rossi@example.com\",\r\n  \"password\": \"Password123!\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{UserManagerURL}}/users/delete",
+					"host": [
+						"{{UserManagerURL}}"
+					],
+					"path": [
+						"users",
+						"delete"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "REFRESH-FLIGHTS EGLL-12H-BOTH",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"hours\": 12,\r\n    \"direction\": \"both\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/airport/EGLL/refresh-flights",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"airport",
+						"EGLL",
+						"refresh-flights"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "REFRESH-FLIGHTS LIMC-24H-BOTH",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/airport/LIMC/refresh-flights",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"airport",
+						"LIMC",
+						"refresh-flights"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD USER AIRPORTS",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"user@example.com\",\r\n    \"password\": \"pwd123\",\r\n    \"airport_code\": \"EGLL\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/user/airports",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"user",
+						"airports"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD USER AIRPORTS 2",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"user@example.com\",\r\n    \"password\": \"pwd123\",\r\n    \"airport_code\": \"LIMC\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/user/airports",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"user",
+						"airports"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET USER AIRPORTS",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/user/airports?email=user@example.com",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"user",
+						"airports"
+					],
+					"query": [
+						{
+							"key": "email",
+							"value": "user@example.com"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE USER AIRPORTS",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"user@example.com\",\r\n    \"password\": \"pwd123\",\r\n    \"airport_code\" : \"LIMC\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/user/airports",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"user",
+						"airports"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET USER FLIGHTS",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/user/flights?email=user@example.com",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"user",
+						"flights"
+					],
+					"query": [
+						{
+							"key": "email",
+							"value": "user@example.com"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET LAST USER FLIGHTS",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/user/flights/last?email=user@example.com&airport_code=EGLL",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"user",
+						"flights",
+						"last"
+					],
+					"query": [
+						{
+							"key": "email",
+							"value": "user@example.com"
+						},
+						{
+							"key": "airport_code",
+							"value": "EGLL"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET AVERAGE",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/user/flights/average?email=user@example.com&airport_code=EGLL&days=3",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"user",
+						"flights",
+						"average"
+					],
+					"query": [
+						{
+							"key": "email",
+							"value": "user@example.com"
+						},
+						{
+							"key": "airport_code",
+							"value": "EGLL"
+						},
+						{
+							"key": "days",
+							"value": "3"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "DataCollectorURL",
+			"value": "http://localhost:5002"
+		},
+		{
+			"key": "UserManagerURL",
+			"value": "http://localhost:5003"
+		}
+	]
+}
