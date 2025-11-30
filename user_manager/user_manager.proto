@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+// Servizio ----------------------
+
+service UserManager {
+  rpc CheckUserExists(CheckUserExistsRequest) returns (CheckUserExistsResponse);
+  rpc CheckUserCredentials(CheckUserCredentialsRequest) returns (CheckUserCredentialsResponse);
+}
+
+// Messaggi ----------------------
+
+message CheckUserExistsRequest {
+  string email = 1;
+}
+
+message CheckUserExistsResponse {
+  bool exists = 1;
+}
+
+message CheckUserCredentialsRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message CheckUserCredentialsResponse {
+  bool valid = 1;
+}

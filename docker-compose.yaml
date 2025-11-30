@@ -1,0 +1,120 @@
+services:
+
+  redis_cache:
+    image: redis:7
+    container_name: redis_cache
+    expose:
+      - "6379"
+    networks:
+      - usernet
+    # Non usiamo un volume per la cache di idempotenza, dato che è volatile e gestita con TTL.
+
+  mysql_user_db:
+    image: mysql:8.0
+    container_name: user-manager-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpwd
+      MYSQL_DATABASE: usermanager_db
+      MYSQL_USER: usermgr
+      MYSQL_PASSWORD: usermgrpwd
+    expose:
+      - "3306"
+    volumes:
+      # volume
+      - user_db_data:/var/lib/mysql
+      # Eseguiamo uno script SQL all'avvio per creare la tabella
+      - ./user_manager/init_user_db.sql:/docker-entrypoint-initdb.d/init_user_db.sql
+    networks:
+      - usernet
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$MYSQL_ROOT_PASSWORD", "--silent" ]
+      interval: 5s
+      timeout: 2s
+      retries: 12
+
+
+  user_manager:
+    build: ./user_manager
+    container_name: user_manager
+    depends_on:
+      mysql_user_db:
+        condition: service_healthy
+      redis_cache:
+        condition: service_started
+    environment:
+      MYSQL_HOST: mysql_user_db
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: usermanager_db
+      MYSQL_USER: usermgr
+      MYSQL_PASSWORD: usermgrpwd
+      REDIS_HOST: redis_cache
+      REDIS_PORT: 6379
+      LISTEN_PORT: 5003
+      DATACOLLECTOR_BASE_URL: http://data_collector:5002
+    ports:
+      - "5003:5003"
+      - "50051:50051"
+    networks:
+      - usernet
+      - shared_microservices_net
+
+
+
+
+
+  mysql_data_db:
+    image: mysql:8.0
+    container_name: data-controller-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpwd
+      MYSQL_DATABASE: data_db
+      MYSQL_USER: userdt
+      MYSQL_PASSWORD: userdtpwd
+    expose:
+      - "3306"
+    volumes:
+      # volume
+      - data_db_data:/var/lib/mysql
+      # Eseguiamo uno script SQL all'avvio per creare la tabella
+      - ./data_collector/init_data_db.sql:/docker-entrypoint-initdb.d/init_data_db.sql
+    networks:
+      - datacontnet
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$MYSQL_ROOT_PASSWORD", "--silent" ]
+      interval: 5s
+      timeout: 2s
+      retries: 12
+
+  data_collector:
+    build: ./data_collector
+    container_name: data_collector
+    depends_on:
+      mysql_data_db:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: mysql_data_db
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: data_db
+      MYSQL_USER: userdt
+      MYSQL_PASSWORD: userdtpwd
+      CLIENT_ID: rg32-api-client
+      CLIENT_SECRET: 8WeYB3x0xz5W7KPghf5rSgziS0TfNsJZ
+      USER_MANAGER_HOST: user_manager
+      USER_MANAGER_PORT: 50051
+      LISTEN_PORT: 5002
+    ports:
+      - "5002:5002"
+    networks:
+      - datacontnet
+      - shared_microservices_net
+
+volumes:
+  user_db_data:
+  data_db_data:
+
+networks:
+  usernet:
+  datacontnet:
+  shared_microservices_net:

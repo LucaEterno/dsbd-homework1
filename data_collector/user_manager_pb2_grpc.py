@@ -26,7 +26,7 @@ if _version_not_supported:
 
 
 class UserManagerStub(object):
-    """Servizio usato tra microservizi (UserManager <-> DataCollector)
+    """Servizio ----------------------
 
     """
 
@@ -37,19 +37,19 @@ class UserManagerStub(object):
             channel: A grpc.Channel.
         """
         self.CheckUserExists = channel.unary_unary(
-                '/usermanager.UserManager/CheckUserExists',
+                '/UserManager/CheckUserExists',
                 request_serializer=user__manager__pb2.CheckUserExistsRequest.SerializeToString,
                 response_deserializer=user__manager__pb2.CheckUserExistsResponse.FromString,
                 _registered_method=True)
         self.CheckUserCredentials = channel.unary_unary(
-                '/usermanager.UserManager/CheckUserCredentials',
+                '/UserManager/CheckUserCredentials',
                 request_serializer=user__manager__pb2.CheckUserCredentialsRequest.SerializeToString,
                 response_deserializer=user__manager__pb2.CheckUserCredentialsResponse.FromString,
                 _registered_method=True)
 
 
 class UserManagerServicer(object):
-    """Servizio usato tra microservizi (UserManager <-> DataCollector)
+    """Servizio ----------------------
 
     """
 
@@ -80,14 +80,14 @@ def add_UserManagerServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'usermanager.UserManager', rpc_method_handlers)
+            'UserManager', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('usermanager.UserManager', rpc_method_handlers)
+    server.add_registered_method_handlers('UserManager', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
 class UserManager(object):
-    """Servizio usato tra microservizi (UserManager <-> DataCollector)
+    """Servizio ----------------------
 
     """
 
@@ -105,7 +105,7 @@ class UserManager(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/usermanager.UserManager/CheckUserExists',
+            '/UserManager/CheckUserExists',
             user__manager__pb2.CheckUserExistsRequest.SerializeToString,
             user__manager__pb2.CheckUserExistsResponse.FromString,
             options,
@@ -132,7 +132,7 @@ class UserManager(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/usermanager.UserManager/CheckUserCredentials',
+            '/UserManager/CheckUserCredentials',
             user__manager__pb2.CheckUserCredentialsRequest.SerializeToString,
             user__manager__pb2.CheckUserCredentialsResponse.FromString,
             options,
