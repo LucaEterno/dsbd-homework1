@@ -18,22 +18,17 @@ Sistema distribuito per la raccolta e gestione di dati sui voli tramite microser
 Il sistema è composto da due microservizi principali che comunicano tra loro:
 
 ```
-┌─────────────────┐         gRPC          ┌──────────────────┐
-│  User Manager   │◄──────────────────────┤ Data Collector   │
-│   (Flask + gRPC)│                        │     (Flask)      │
-└────────┬────────┘                        └────────┬─────────┘
-         │                                          │
-         │                                          │
-    ┌────▼─────┐                              ┌────▼─────┐
-    │  MySQL   │                              │  MySQL   │
-    │  Users   │                              │  Flights │
-    └──────────┘                              └──────────┘
-         │
-         │
-    ┌────▼─────┐
-    │  Redis   │
-    │  Cache   │
-    └──────────┘
+  ┌─────────────────┐         gRPC          ┌──────────────────┐
+  │  User Manager   │ ◄─────────────────────┤ Data Collector   │
+  │   (Flask + gRPC)│                       │     (Flask)      │
+  └─────────────────┘                       └────────┬─────────┘
+     │            │                                  │
+     │            │                                  │
+┌────▼─────┐ ┌────▼─────┐                       ┌────▼─────┐
+│  MySQL   │ │  Redis   │                       │  MySQL   │
+│  Users   │ │  Cache   │                       │  Flights │
+└──────────┘ └──────────┘                       └──────────┘
+        
 ```
 
 ### Caratteristiche principali:
@@ -129,7 +124,7 @@ docker-compose ps
 ```
 
 ## 💡 Utilizzo
-
+### Nei Documenti è presente un .json per un utilizzo guidato tramite POSTMAN
 ### Esempio: Workflow completo
 
 ```bash
