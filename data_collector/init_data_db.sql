@@ -1,6 +1,8 @@
 CREATE TABLE IF NOT EXISTS user_airports (
-     user_email VARCHAR(255) NOT NULL,
+    user_email VARCHAR(255) NOT NULL,
     airport_code CHAR(4) NOT NULL,
+    high_value INT NULL,
+    low_value INT NULL,
     PRIMARY KEY (user_email, airport_code)
 );
 

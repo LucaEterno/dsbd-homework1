@@ -1,10 +1,10 @@
 {
 	"info": {
-		"_postman_id": "cc378433-8210-4fbd-948e-9d4ecbef50a7",
+		"_postman_id": "3bb1b2a9-08aa-4b2c-8073-43e044b8a23a",
 		"name": "DSBD-HW1",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "50269869",
-		"_collection_link": "https://rosario32-3880256.postman.co/workspace/Rosario's-Workspace~71f68a61-f64a-4ccf-8cb6-8fe7fec592ef/collection/50269869-cc378433-8210-4fbd-948e-9d4ecbef50a7?action=share&source=collection_link&creator=50269869"
+		"_exporter_id": "50448608",
+		"_collection_link": "https://luca-e7-2417121.postman.co/workspace/Team's-Workspace~5b314627-2e29-42cc-87e6-7564a0d84dae/collection/50448608-3bb1b2a9-08aa-4b2c-8073-43e044b8a23a?action=share&source=collection_link&creator=50448608"
 	},
 	"item": [
 		{
@@ -259,7 +259,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"email\": \"user@example.com\",\r\n    \"password\": \"pwd123\",\r\n    \"airport_code\": \"EGLL\"\r\n}",
+					"raw": "{\r\n    \"email\": \"user@example.com\",\r\n    \"password\": \"pwd123\",\r\n    \"airport_code\": \"EGLL\",\r\n    \"high_value\": 50,\r\n    \"low_value\": 10\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -286,7 +286,34 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"email\": \"user@example.com\",\r\n    \"password\": \"pwd123\",\r\n    \"airport_code\": \"LIMC\"\r\n}",
+					"raw": "{\r\n    \"email\": \"user@example.com\",\r\n    \"password\": \"pwd123\",\r\n    \"airport_code\": \"LIMC\",\r\n    \"high_value\": 60\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/user/airports",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"user",
+						"airports"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD USER AIRPORTS 3",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"user@example.com\",\r\n    \"password\": \"pwd123\",\r\n    \"airport_code\": \"LICC\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -343,13 +370,40 @@
 			"response": []
 		},
 		{
+			"name": "New Request",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"pwd123\",\n  \"airport_code\": \"LICC\",\n  \"high_value\": 80\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/user/airports",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"user",
+						"airports"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "DELETE USER AIRPORTS",
 			"request": {
 				"method": "DELETE",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"email\": \"user@example.com\",\r\n    \"password\": \"pwd123\",\r\n    \"airport_code\" : \"LIMC\"\r\n}",
+					"raw": "{\r\n    \"email\": \"user@example.com\",\r\n    \"password\": \"pwd123\",\r\n    \"airport_code\" : \"LICC\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
