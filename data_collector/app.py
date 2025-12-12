@@ -72,29 +72,36 @@ def add_user_airport():
     {
         "email": "user@example.com",
         "password": "pwd123",
-        "airport_code": "LICC"
+        "airport_code": "LICC",
+        "high_value": 50,   # opzionale
+        "low_value": 10     # opzionale
     }
 
     Passi:
     1. Verifica credenziali chiamando UserManager.CheckUserCredentials via gRPC
-    2. Se esiste, inserisce (user_email, airport_code) nella tabella user_airports.
+    2. Se valide, inserisce (user_email, airport_code, high_value, low_value) nella tabella user_airports.
     """
 
-    #0) Verifica del JSON
+    # 0) Verifica del JSON
     data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "Invalid or missing JSON body"}), 400
 
-    email = data.get("email") #ricava l'email dal json
-    password = data.get("password") # ricava la password dal json
-    airport_code = data.get("airport_code") #ricava il codice aeroporto dal json
+    email = data.get("email")
+    password = data.get("password")
+    airport_code = data.get("airport_code")
+
+    # Nuovi campi opzionali
+    high_value = data.get("high_value", None)
+    low_value = data.get("low_value", None)
+
     if not email or not password or not airport_code:
         return jsonify({"error": "Missing 'email' or 'password' or 'airport_code'"}), 400
 
-    # Controllo sui parametri
+    # Controllo sui parametri obbligatori
     if not isinstance(email, str) or \
-        not isinstance(password, str) or \
-        not isinstance(airport_code, str):
+       not isinstance(password, str) or \
+       not isinstance(airport_code, str):
         return jsonify({"error": "email, password and airport_code must be strings"}), 400
 
     # Controllo formato ICAO
@@ -102,10 +109,29 @@ def add_user_airport():
     if not ICAO_REGEX.match(airport_code):
         return jsonify({"error": "Invalid airport_code format (must be 4 letters, ICAO code)"}), 400
 
-    print(f"[DataCollector] Richiesta di aggiunta aeroporto '{airport_code}' per utente '{email}'")
+    # Validazione campi opzionali high_value / low_value
+    try:
+        if high_value is not None:
+            high_value = int(high_value)
+            if high_value < 0:
+                return jsonify({"error": "high_value must be >= 0"}), 400
 
+        if low_value is not None:
+            low_value = int(low_value)
+            if low_value < 0:
+                return jsonify({"error": "low_value must be >= 0"}), 400
+    except (ValueError, TypeError):
+        return jsonify({"error": "high_value and low_value must be integers"}), 400
 
-    # 1) Verifica esistenza utente via gRPC
+    # Se entrambi presenti, impongo high > low
+    if high_value is not None and low_value is not None:
+        if high_value <= low_value:
+            return jsonify({"error": "high_value must be strictly greater than low_value"}), 400
+
+    print(f"[DataCollector] Richiesta di aggiunta aeroporto '{airport_code}' per utente '{email}' "
+          f"(high_value={high_value}, low_value={low_value})")
+
+    # 1) Verifica credenziali via gRPC
     try:
         stub = get_user_manager_stub()
         cred_req = user_manager_pb2.CheckUserCredentialsRequest(
@@ -124,7 +150,6 @@ def add_user_airport():
             "message": "invalid credentials"
         }), 401
 
-
     # 2) Inserimento nel DB data_db.user_airports
     try:
         conn = get_db()
@@ -135,18 +160,21 @@ def add_user_airport():
     try:
         cursor = conn.cursor()
         sql = """
-            INSERT INTO user_airports (user_email, airport_code)
-            VALUES (%s, %s)
+            INSERT INTO user_airports (user_email, airport_code, high_value, low_value)
+            VALUES (%s, %s, %s, %s)
         """
-        cursor.execute(sql, (email, airport_code))
+        cursor.execute(sql, (email, airport_code, high_value, low_value))
         conn.commit()
         cursor.close()
+
         print(f"[DataCollector] SUCCESS: aggiunto aeroporto '{airport_code}' per utente '{email}'")
         return jsonify({
             "success": True,
             "message": "airport added for user",
             "email": email,
-            "airport_code": airport_code
+            "airport_code": airport_code,
+            "high_value": high_value,
+            "low_value": low_value
         }), 201
 
     except Error as e:
@@ -158,15 +186,140 @@ def add_user_airport():
                 "message": "airport already registered for this user"
             }), 200
 
-        #Altre tipologie di errore
+        # Altre tipologie di errore
         print(f"Errore DB in insert user_airports: {e}")
+        return jsonify({"error": "Database error"}), 500
+
+
+@app.route("/user/airports", methods=["PUT"])
+def update_user_airport_thresholds():
+    """
+    Aggiorna le soglie high_value / low_value per un profilo utente+aeroporto.
+
+    Body JSON:
+    {
+      "email": "user@example.com",
+      "password": "pwd123",
+      "airport_code": "LICC",
+      "high_value": 60,    # opzionale
+      "low_value": 20      # opzionale
+    }
+
+    - Almeno una tra high_value e low_value deve essere presente.
+    - Se entrambe presenti, viene verificata la condizione high_value > low_value.
+    """
+    # 0) Verifica del JSON
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
+
+    email = data.get("email")
+    password = data.get("password")
+    airport_code = data.get("airport_code")
+    high_value = data.get("high_value")
+    low_value = data.get("low_value")
+
+    if not email or not password or not airport_code:
+        return jsonify({"error": "Missing 'email' or 'password' or 'airport_code'"}), 400
+
+    # Controllo sui parametri obbligatori
+    if not isinstance(email, str) or \
+       not isinstance(password, str) or \
+       not isinstance(airport_code, str):
+        return jsonify({"error": "email, password and airport_code must be strings"}), 400
+    if high_value is None and low_value is None:
+        return jsonify({"error": "At least one of 'high_value' or 'low_value' must be provided"}), 400
+    
+    # Controllo formato ICAO
+    airport_code = airport_code.upper()  # Case insensitivity
+    if not ICAO_REGEX.match(airport_code):
+        return jsonify({"error": "Invalid airport_code format (must be 4 letters, ICAO code)"}), 400
+
+    # Validazione campi opzionali high_value / low_value
+    try:
+        if high_value is not None:
+            high_value = int(high_value)
+        if low_value is not None:
+            low_value = int(low_value)
+    except ValueError:
+        return jsonify({"error": "high_value and low_value must be integers"}), 400
+
+    if high_value is not None and low_value is not None and high_value <= low_value:
+        return jsonify({
+            "error": "high_value must be strictly greater than low_value"
+        }), 400
+    
+    print(f"[DataCollector] Richiesta UPDATE soglie per '{email}' - '{airport_code}' "
+          f"(high_value={high_value}, low_value={low_value})")
+    
+    # 1) Verifica credenziali via gRPC
+    try:
+        stub = get_user_manager_stub()
+        cred_req = user_manager_pb2.CheckUserCredentialsRequest(
+            email=email,
+            password=password
+        )
+        cred_res = stub.CheckUserCredentials(cred_req)
+    except grpc.RpcError as e:
+        print(f"Errore gRPC verso UserManager: {e}")
+        return jsonify({"error": "UserManager not reachable"}), 500
+
+    if not cred_res.valid:
+        print(f"[DataCollector] FAILED: credenziali non valide per '{email}' in PUT /user/airports")
+        return jsonify({
+            "success": False,
+            "message": "invalid credentials"
+        }), 401
+    
+    # 2) Aggiornamento del DB data_db.user_airports
+    try:
+        conn = get_db()
+    except Error as e:
+        print(f"Errore nella connessione al DB: {e}")
+        return jsonify({"error": "Could not connect to data_db"}), 500
+
+    try:
+        cursor = conn.cursor()
+
+        sql_update = """
+            UPDATE user_airports
+            SET high_value = %s,
+                low_value  = %s
+            WHERE user_email = %s AND airport_code = %s
+        """
+        cursor.execute(sql_update, (high_value, low_value, email, airport_code))
+        row = cursor.rowcount
+        conn.commit()
+        cursor.close()
+
+        if row == 0:
+            print(f"[DataCollector] FAILED: associazione non esiste per '{email}', '{airport_code}'")
+            return jsonify({
+                "success": False,
+                "message": "user_airport association does not exist"
+            }), 404
+        
+        print(f"[DataCollector] SUCCESS: aggiornate soglie per '{email}' - '{airport_code}' "
+              f"(high_value={high_value}, low_value={low_value})")
+
+        return jsonify({
+            "success": True,
+            "message": "thresholds updated",
+            "email": email,
+            "airport_code": airport_code,
+            "high_value": high_value,
+            "low_value": low_value
+        }), 200
+
+    except Error as e:
+        print(f"Errore DB in update_user_airport_thresholds: {e}")
         return jsonify({"error": "Database error"}), 500
 
 
 @app.route("/user/airports", methods=["GET"])
 def get_user_airports():
     """
-    Restituisce la lista degli aeroporti di interesse per un utente.
+    Restituisce la lista degli aeroporti di interesse per un utente, incluse le soglie high_value e low_value.
 
     Richiesta:
             GET /user/airports?email=utente@example.com
@@ -177,15 +330,18 @@ def get_user_airports():
     3. Legge dal DB data_db.user_airports tutti gli aeroporti associati.
     4. Restituisce un JSON con la lista degli aeroporti.
     """
-    # 1) Legge l'email dalla query string
+    # 0) Validazione parametri query
     email = request.args.get("email")
 
     if not email:
         return jsonify({"error": "Missing 'email' query parameter"}), 400
+    
+    if not isinstance(email, str):
+        return jsonify({"error": "email must be a string"}), 400
 
     print(f"[DataCollector] Richiesta lista aeroporti per utente '{email}'")
 
-    # 2) Verifica esistenza utente via UserManager (gRPC)
+    # 1) Verifica esistenza utente via UserManager (gRPC)
     try:
         stub = get_user_manager_stub()
         req = user_manager_pb2.CheckUserExistsRequest(email=email)
@@ -198,17 +354,12 @@ def get_user_airports():
         print(f"[DataCollector] Utente '{email}' non esiste secondo UserManager (GET /user/airports)")
         return jsonify({"error": "User does not exist"}), 404
 
-    # 3) Recupero aeroporti dal DB data_db.user_airports
+    # 2) Recupero aeroporti dal DB data_db.user_airports
     try:
         conn = get_db()
-    except Error as e:
-        print(f"Errore nella connessione al DB: {e}")
-        return jsonify({"error": "Could not connect to data_db"}), 500
-
-    try:
         cursor = conn.cursor(dictionary=True) #dictionary=True per avere dizionari come risultati anziché tuple di righe
         sql = """
-            SELECT airport_code
+            SELECT airport_code, high_value, low_value
             FROM user_airports
             WHERE user_email = %s
             ORDER BY airport_code
@@ -216,9 +367,14 @@ def get_user_airports():
         cursor.execute(sql, (email,))
         rows = cursor.fetchall() #Restituisce una lista di righe (ognuna è un dizionario)
         cursor.close()
-        airports = [row["airport_code"] for row in rows]
+        airports = [{"airport_code": row["airport_code"],
+                "high_value": row["high_value"],
+                "low_value": row["low_value"]} for row in rows]
+        
+        if len(airports) == 0:
+            print(f"[DataCollector] INFO: nessun aeroporto associato a '{email}'")
 
-        print(f"[DataCollector] Trovati {len(airports)} aeroporti per utente '{email}'")
+        print(f"[DataCollector] SUCCESS: Trovati {len(airports)} aeroporti per utente '{email}'")
         return jsonify({
             "email": email,
             "airports": airports,
