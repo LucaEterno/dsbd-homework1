@@ -6,12 +6,12 @@ services:
     expose:
       - "6379"
     networks:
-      - usernet
+      - user_net
     # Non usiamo un volume per la cache di idempotenza, dato che è volatile e gestita con TTL.
 
   mysql_user_db:
     image: mysql:8.0
-    container_name: user-manager-db
+    container_name: user_manager_db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: rootpwd
@@ -21,12 +21,10 @@ services:
     expose:
       - "3306"
     volumes:
-      # volume
       - user_db_data:/var/lib/mysql
-      # Eseguiamo uno script SQL all'avvio per creare la tabella
       - ./user_manager/init_user_db.sql:/docker-entrypoint-initdb.d/init_user_db.sql
     networks:
-      - usernet
+      - user_net
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$MYSQL_ROOT_PASSWORD", "--silent" ]
       interval: 5s
@@ -56,7 +54,7 @@ services:
       - "5003:5003"
       - "50051:50051"
     networks:
-      - usernet
+      - user_net
       - shared_microservices_net
 
 
@@ -65,7 +63,7 @@ services:
 
   mysql_data_db:
     image: mysql:8.0
-    container_name: data-controller-db
+    container_name: data_collector_db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: rootpwd
@@ -80,7 +78,7 @@ services:
       # Eseguiamo uno script SQL all'avvio per creare la tabella
       - ./data_collector/init_data_db.sql:/docker-entrypoint-initdb.d/init_data_db.sql
     networks:
-      - datacontnet
+      - data_collector_net
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$MYSQL_ROOT_PASSWORD", "--silent" ]
       interval: 5s
@@ -93,6 +91,8 @@ services:
     depends_on:
       mysql_data_db:
         condition: service_healthy
+      kafka:
+        condition: service_started
     environment:
       MYSQL_HOST: mysql_data_db
       MYSQL_PORT: 3306
@@ -104,17 +104,52 @@ services:
       USER_MANAGER_HOST: user_manager
       USER_MANAGER_PORT: 50051
       LISTEN_PORT: 5002
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "5002:5002"
     networks:
-      - datacontnet
+      - data_collector_net
       - shared_microservices_net
+      - kafka_net
+
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: ULLsQw4xTkWRCNPMvcwf5g
+      KAFKA_CLUSTER_ID: ULLsQw4xTkWRCNPMvcwf5g
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafkabasic_kafka_1:29093
+
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+
+      KAFKA_LOG4J_LOGGERS: org.apache.kafka.image.loader.MetadataLoader=WARN
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - kafka_net
 
 volumes:
   user_db_data:
   data_db_data:
+  kafka-data:
 
 networks:
-  usernet:
-  datacontnet:
+  user_net:
+  data_collector_net:
   shared_microservices_net:
+  kafka_net:

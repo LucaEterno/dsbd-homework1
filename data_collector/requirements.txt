@@ -3,5 +3,5 @@ mysql-connector-python
 grpcio
 grpcio-tools
 requests
-
+confluent_kafka
 

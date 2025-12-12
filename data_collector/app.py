@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import collector_worker
 from flight_services import refresh_flights_for_airport_logic
 import user_manager_pb2, user_manager_pb2_grpc
+from kafka_producer import send_update_completed_notification
 
 
 app = Flask(__name__)
@@ -666,7 +667,8 @@ def refresh_flights_for_airport(airport_code):
     try:
         conn = get_db()
         result = refresh_flights_for_airport_logic(conn, airport_code, hours, direction)
-        # Nota: La connessione verrà chiusa automaticamente da close_db
+        #Notifica
+        send_update_completed_notification()
         return jsonify(result), 200
     except ValueError as e:
         # errori di validazione lato servizio
