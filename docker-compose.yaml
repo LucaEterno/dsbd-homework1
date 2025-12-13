@@ -31,7 +31,6 @@ services:
       timeout: 2s
       retries: 12
 
-
   user_manager:
     build: ./user_manager
     container_name: user_manager
@@ -56,10 +55,6 @@ services:
     networks:
       - user_net
       - shared_microservices_net
-
-
-
-
 
   mysql_data_db:
     image: mysql:8.0
@@ -112,7 +107,6 @@ services:
       - shared_microservices_net
       - kafka_net
 
-
   kafka:
     image: confluentinc/cp-kafka:7.4.0
     container_name: kafka
@@ -140,6 +134,15 @@ services:
       KAFKA_LOG4J_LOGGERS: org.apache.kafka.image.loader.MetadataLoader=WARN
     volumes:
       - kafka-data:/var/lib/kafka/data
+    networks:
+      - kafka_net
+
+  kafka-setup:
+    build: ./kafka
+    container_name: kafka-setup
+    depends_on:
+      - kafka
+    restart: "no"
     networks:
       - kafka_net
 

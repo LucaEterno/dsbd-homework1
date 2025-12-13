@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "3bb1b2a9-08aa-4b2c-8073-43e044b8a23a",
-		"name": "DSBD-HW1",
+		"name": "DSBD-HW2",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "50448608",
 		"_collection_link": "https://luca-e7-2417121.postman.co/workspace/Team's-Workspace~5b314627-2e29-42cc-87e6-7564a0d84dae/collection/50448608-3bb1b2a9-08aa-4b2c-8073-43e044b8a23a?action=share&source=collection_link&creator=50448608"
@@ -370,7 +370,7 @@
 			"response": []
 		},
 		{
-			"name": "New Request",
+			"name": "UPDATE USER AIRPORT THRESHOLDS",
 			"request": {
 				"method": "PUT",
 				"header": [],
