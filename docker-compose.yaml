@@ -30,6 +30,7 @@ services:
       interval: 5s
       timeout: 2s
       retries: 12
+      start_period: 30s
 
   user_manager:
     build: ./user_manager
@@ -39,6 +40,7 @@ services:
         condition: service_healthy
       redis_cache:
         condition: service_started
+    restart: always
     environment:
       MYSQL_HOST: mysql_user_db
       MYSQL_PORT: 3306
@@ -79,6 +81,7 @@ services:
       interval: 5s
       timeout: 2s
       retries: 12
+      start_period: 30s
 
   data_collector:
     build: ./data_collector
@@ -88,6 +91,7 @@ services:
         condition: service_healthy
       kafka:
         condition: service_started
+    restart: always
     environment:
       MYSQL_HOST: mysql_data_db
       MYSQL_PORT: 3306
@@ -99,7 +103,7 @@ services:
       USER_MANAGER_HOST: user_manager
       USER_MANAGER_PORT: 50051
       LISTEN_PORT: 5002
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     ports:
       - "5002:5002"
     networks:
@@ -118,10 +122,10 @@ services:
       CLUSTER_ID: ULLsQw4xTkWRCNPMvcwf5g
       KAFKA_CLUSTER_ID: ULLsQw4xTkWRCNPMvcwf5g
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafkabasic_kafka_1:29093
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
 
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://kafka:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
@@ -146,6 +150,27 @@ services:
     networks:
       - kafka_net
 
+  alert_system:
+    build: ./alert_system
+    container_name: alert_system
+    depends_on:
+      mysql_data_db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    restart: always
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      DB_HOST: mysql_data_db
+      DB_PORT: 3306
+      DB_NAME: data_db
+      DB_USER: userdt
+      DB_PASSWORD: userdtpwd
+    networks:
+      - kafka_net
+      - data_collector_net
+
+
 volumes:
   user_db_data:
   data_db_data:
@@ -156,3 +181,4 @@ networks:
   data_collector_net:
   shared_microservices_net:
   kafka_net:
+
