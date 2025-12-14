@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 import mysql.connector
 from mysql.connector import Error
-from flight_services import refresh_flights_for_airport_logic
+from opensky_client import refresh_flights_for_airport_logic
 from kafka_producer import send_update_completed_notification, flush_producer
 
 
