@@ -1,10 +1,21 @@
+import os
 import requests
 from mysql.connector import Error
-
 import time
 from datetime import datetime, timezone
-
 from opensky_auth import get_opensky_token
+from circuit_breaker import CircuitBreaker, CircuitBreakerOpenException
+import requests
+
+# Configura il Circuit Breaker per le chiamate OpenSky
+failure_threshold = int(os.getenv("OPENSKY_CB_FAILURE_THRESHOLD", "5"))
+recovery_timeout = int(os.getenv("OPENSKY_CB_RECOVERY_TIMEOUT", "30"))
+
+opensky_cb = CircuitBreaker(
+    failure_threshold=failure_threshold,
+    recovery_timeout=recovery_timeout,
+    expected_exception=requests.exceptions.RequestException
+)
 
 
 def fetch_flights_from_opensky(airport_code, direction, begin, end):
@@ -13,10 +24,6 @@ def fetch_flights_from_opensky(airport_code, direction, begin, end):
     usando un token OAuth2 (Bearer) con caching.
     """
 
-    if direction not in ("arrival", "departure"):
-        raise ValueError("direction must be 'arrival' or 'departure'")
-
-    # Otteniamo un token da opensky_auth
     token = get_opensky_token()
     if not token:
         raise RuntimeError("Impossibile ottenere il token OpenSky (controlla CLIENT_ID/CLIENT_SECRET)")
@@ -37,19 +44,35 @@ def fetch_flights_from_opensky(airport_code, direction, begin, end):
 
     print(f"[OpenSky] GET {url} params={params}, direction={direction} (con Bearer token)")
 
-    resp = requests.get(url, params=params, headers=headers, timeout=30)
+    # --- chiamata protetta da Circuit Breaker ---
+    def _do_request():
+        resp = requests.get(url, params=params, headers=headers, timeout=30)
 
-    if resp.status_code == 200:
-        flights = resp.json()
-        print(f"[OpenSky] {len(flights)} voli ricevuti per {airport_code} ({direction})")
-        return flights
+        # 200 ok
+        if resp.status_code == 200:
+            return resp.json()
 
-    if resp.status_code == 404:
-        print(f"[OpenSky] Nessun volo per {airport_code} ({direction}) nell'intervallo richiesto")
-        return []
+        # 404 = nessun volo (non è un "fallimento" della rete)
+        if resp.status_code == 404:
+            return []
 
-    print(f"[OpenSky] Errore {resp.status_code}: {resp.text}")
-    raise RuntimeError(f"OpenSky error {resp.status_code}")
+        # per tutti gli altri status -> lo consideriamo errore
+        # convertiamo in HTTPError (subclass di RequestException) così il CB lo conta come failure
+        resp.raise_for_status()
+
+    try:
+        flights = opensky_cb.call(_do_request)
+    except CircuitBreakerOpenException:
+        # rilanciamo, così lo gestisce il livello sopra (route/logic) con 503
+        print("[OpenSky] Circuit OPEN: richiesta negata dal Circuit Breaker")
+        raise
+    except requests.exceptions.RequestException as e:
+        # errore rete/HTTP -> viene già conteggiato dal CB
+        print(f"[OpenSky] RequestException: {e}")
+        raise RuntimeError(f"OpenSky request failed: {e}")
+
+    print(f"[OpenSky] {len(flights)} voli ricevuti per {airport_code} ({direction})")
+    return flights
 
 
 def store_flights_in_db(conn, airport_code, direction, flights):

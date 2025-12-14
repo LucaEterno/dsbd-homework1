@@ -7,9 +7,10 @@ from flask import Flask, request, jsonify, g
 from datetime import datetime, timedelta
 
 import collector_worker
-from flight_services import refresh_flights_for_airport_logic
 import user_manager_pb2, user_manager_pb2_grpc
+from opensky_client import refresh_flights_for_airport_logic, opensky_cb
 from kafka_producer import send_update_completed_notification
+from circuit_breaker import CircuitBreakerOpenException
 
 
 app = Flask(__name__)
@@ -823,18 +824,38 @@ def refresh_flights_for_airport(airport_code):
     try:
         conn = get_db()
         result = refresh_flights_for_airport_logic(conn, airport_code, hours, direction)
-        #Notifica
+        # Notifica
         send_update_completed_notification()
         return jsonify(result), 200
+
+    except CircuitBreakerOpenException as e:
+        # Circuito aperto: non tentiamo nemmeno la chiamata a OpenSky
+        return jsonify({
+            "error": "OpenSky temporarily unavailable (circuit open). Retry later.",
+            "details": str(e)
+        }), 503
+
     except ValueError as e:
-        # errori di validazione lato servizio
         return jsonify({"error": str(e)}), 400
+
     except RuntimeError as e:
-        # errori provenienti da OpenSky
+        # errori provenienti da OpenSky (timeout, HTTP error, token ecc.)
         return jsonify({"error": str(e)}), 502
+
     except Exception as e:
         print(f"Errore inatteso in refresh_flights_for_airport endpoint: {e}")
         return jsonify({"error": "unexpected error"}), 500
+    
+
+@app.route("/debug/opensky-cb", methods=["GET"])
+def debug_opensky_cb():
+    return jsonify({
+        "state": opensky_cb.state,
+        "failure_count": opensky_cb.failure_count,
+        "last_failure_time": opensky_cb.last_failure_time,
+        "failure_threshold": opensky_cb.failure_threshold,
+        "recovery_timeout": opensky_cb.recovery_timeout
+    }), 200
 
 if __name__ == "__main__":
     # 1. Avvio thread
