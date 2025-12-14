@@ -31,10 +31,16 @@ def delivery_report(err, msg):
     else:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [Kafka_Producer] Messaggio inviato a {msg.topic()} [{msg.partition()}] @ offset {msg.offset()}")
 
-def send_update_completed_notification():
+def send_update_completed_notification(airport_data: dict):
     """
     Invia un messaggio di notifica sul topic 'to-alert-system'.
-    Il payload contiene solo il timestamp dell'aggiornamento completato.
+    Il payload contiene
+    timestamp, stato di completamento e un dizionario con i dati degli aeroporti aggiornati, ad esempio:
+    airport_data = {
+        'LICC': {'flight_count': 45, 'updated_at': '2025-12-14T10:30:00'},
+        'EGLL': {'flight_count': 123, 'updated_at': '2025-12-14T10:30:00'},
+        ...
+    }
     """
     if producer is None:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [Kafka_Producer] Producer non inizializzato. Impossibile inviare il messaggio.")
@@ -44,6 +50,7 @@ def send_update_completed_notification():
         kafka_message_payload = {
             'timestamp': datetime.now().isoformat(),
             'status': 'update_completed',
+            'airports_data': airport_data,
         }
 
         message_key = "data_update_trigger"

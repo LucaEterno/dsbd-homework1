@@ -50,6 +50,7 @@ def periodic_data_collection():
             conn.close()
 
             print(f"[Collector_Worker] Trovati {len(airports)} aeroporti da monitorare.")
+            airports_data = {}
 
             # 2. Aggiorna i dati per ciascun aeroporto
             for airport_code in airports:
@@ -57,9 +58,30 @@ def periodic_data_collection():
                     conn_refresh = get_db_standalone()
                     print(f"[Collector_Worker] Aggiornamento dati per {airport_code}...")
                     refresh_flights_for_airport_logic(conn_refresh, airport_code, PERIOD_HOURS, "both")
+
+                    # NUOVO: Recupera conteggio voli
+                    cursor = conn_refresh.cursor()
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM flights WHERE airport_code = %s", 
+                        (airport_code,)
+                    )
+                    flight_count = cursor.fetchone()[0]
+                    cursor.close()
+                    
+                    airports_data[airport_code] = {
+                        'flight_count': flight_count,
+                        'updated_at': datetime.now().isoformat()
+                    }
+
                     conn_refresh.close()
+                    print(f"[Collector_Worker] {airport_code}: {flight_count} voli registrati.")
+
                 except Exception as e:
                     print(f"[Collector_Worker] ATTENZIONE: Errore durante l'aggiornamento dati per {airport_code}: {e}")
+                    airports_data[airport_code] = {
+                        'flight_count': None,
+                        'error': str(e)
+                    }
                     # Chiusura connessione in caso di errore
                     if conn_refresh is not None and conn_refresh.is_connected():
                         conn_refresh.close()
@@ -78,7 +100,7 @@ def periodic_data_collection():
         if update_successful:
             print(f"[Collector_Worker] Aggiornamento DB completato. Invio notifica a Kafka.")
             # Chiamata alla funzione producer che invia il trigger
-            send_update_completed_notification()
+            send_update_completed_notification(airports_data)
         else:
             print(f"[Collector_Worker] Aggiornamento fallito o non completato. Nessuna notifica Kafka inviata.")
 
