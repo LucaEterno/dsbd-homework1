@@ -103,7 +103,7 @@ services:
       USER_MANAGER_HOST: user_manager
       USER_MANAGER_PORT: 50051
       LISTEN_PORT: 5002
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       OPENSKY_CB_FAILURE_THRESHOLD: 5
       OPENSKY_CB_RECOVERY_TIMEOUT: 30
     ports:
@@ -172,6 +172,30 @@ services:
       - kafka_net
       - data_collector_net
 
+  alert_notifier_system:
+    build: ./alert_notifier_system
+    container_name: alert_notifier_system
+    depends_on:
+      kafka:
+        condition: service_started
+    restart: always
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SMTP_SERVER: mailhog
+      SMTP_PORT: 1025
+    networks:
+      - kafka_net
+      - mailhog_net
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - mailhog_net
+
 
 volumes:
   user_db_data:
@@ -183,3 +207,4 @@ networks:
   data_collector_net:
   shared_microservices_net:
   kafka_net:
+  mailhog_net:
