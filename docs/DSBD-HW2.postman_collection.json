@@ -1,10 +1,10 @@
 {
 	"info": {
-		"_postman_id": "3bb1b2a9-08aa-4b2c-8073-43e044b8a23a",
+		"_postman_id": "60a520eb-e610-456c-9879-9c81151ef800",
 		"name": "DSBD-HW2",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "50448608",
-		"_collection_link": "https://luca-e7-2417121.postman.co/workspace/Team's-Workspace~5b314627-2e29-42cc-87e6-7564a0d84dae/collection/50448608-3bb1b2a9-08aa-4b2c-8073-43e044b8a23a?action=share&source=collection_link&creator=50448608"
+		"_collection_link": "https://luca-e7-2417121.postman.co/workspace/Team's-Workspace~5b314627-2e29-42cc-87e6-7564a0d84dae/collection/50448608-60a520eb-e610-456c-9879-9c81151ef800?action=share&source=collection_link&creator=50448608"
 	},
 	"item": [
 		{
@@ -155,98 +155,6 @@
 					"path": [
 						"users",
 						"delete"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "REFRESH-FLIGHTS EGLL-12H-BOTH",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {",
-							"    pm.response.to.have.status(200);",
-							"});"
-						],
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {}
-					}
-				}
-			],
-			"request": {
-				"auth": {
-					"type": "noauth"
-				},
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"hours\": 12,\r\n    \"direction\": \"both\"\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{DataCollectorURL}}/airport/EGLL/refresh-flights",
-					"host": [
-						"{{DataCollectorURL}}"
-					],
-					"path": [
-						"airport",
-						"EGLL",
-						"refresh-flights"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "REFRESH-FLIGHTS LIMC-24H-BOTH",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {",
-							"    pm.response.to.have.status(200);",
-							"});"
-						],
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {}
-					}
-				}
-			],
-			"request": {
-				"auth": {
-					"type": "noauth"
-				},
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{DataCollectorURL}}/airport/LIMC/refresh-flights",
-					"host": [
-						"{{DataCollectorURL}}"
-					],
-					"path": [
-						"airport",
-						"LIMC",
-						"refresh-flights"
 					]
 				}
 			},
@@ -424,6 +332,102 @@
 			"response": []
 		},
 		{
+			"name": "REFRESH-FLIGHTS EGLL-12H-BOTH",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"hours\": 12,\r\n    \"direction\": \"both\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/airport/refresh-flights",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"airport",
+						"refresh-flights"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "REFRESH-FLIGHTS LIMC-24H-BOTH",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/airport/refresh-flights",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"airport",
+						"refresh-flights"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "GET USER FLIGHTS",
 			"protocolProfileBehavior": {
 				"disableBodyPruning": true
@@ -448,6 +452,46 @@
 						{
 							"key": "email",
 							"value": "user@example.com"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET AVERAGE",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{DataCollectorURL}}/user/flights/average?email=user@example.com&airport_code=EGLL&days=3",
+					"host": [
+						"{{DataCollectorURL}}"
+					],
+					"path": [
+						"user",
+						"flights",
+						"average"
+					],
+					"query": [
+						{
+							"key": "email",
+							"value": "user@example.com"
+						},
+						{
+							"key": "airport_code",
+							"value": "EGLL"
+						},
+						{
+							"key": "days",
+							"value": "3"
 						}
 					]
 				}
@@ -491,7 +535,7 @@
 			"response": []
 		},
 		{
-			"name": "GET AVERAGE",
+			"name": "DEBUG CIRCUIT BREAKER",
 			"protocolProfileBehavior": {
 				"disableBodyPruning": true
 			},
@@ -503,28 +547,13 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{DataCollectorURL}}/user/flights/average?email=user@example.com&airport_code=EGLL&days=3",
+					"raw": "{{DataCollectorURL}}/debug/opensky-cb",
 					"host": [
 						"{{DataCollectorURL}}"
 					],
 					"path": [
-						"user",
-						"flights",
-						"average"
-					],
-					"query": [
-						{
-							"key": "email",
-							"value": "user@example.com"
-						},
-						{
-							"key": "airport_code",
-							"value": "EGLL"
-						},
-						{
-							"key": "days",
-							"value": "3"
-						}
+						"debug",
+						"opensky-cb"
 					]
 				}
 			},

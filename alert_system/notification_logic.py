@@ -26,9 +26,12 @@ def get_db_standalone():
         print(f"Errore nella connessione al database: {e}")
         raise
 
-def verification_logic() -> List[Dict[str, Any]]:
+def verification_logic(airports_data: dict) -> List[Dict[str, Any]]:
     """
     Verifica il conteggio dei voli e lo confronta con le soglie degli utenti.
+
+    Params:
+        airports_data = dati ricevuti da Kafka
     """
 
     conn = None
@@ -38,7 +41,7 @@ def verification_logic() -> List[Dict[str, Any]]:
         conn = get_db_standalone()
         cursor = conn.cursor(dictionary=True)
 
-        # 1. Recupera le soglie degli utenti e gli aeroporti da monitorare
+        # 1. Recupera le soglie degli utenti dal DB
         sql_users = """
             SELECT user_email, airport_code, high_value, low_value
             FROM user_airports
@@ -50,28 +53,21 @@ def verification_logic() -> List[Dict[str, Any]]:
         if not users_thresholds:
             return []
 
-        airports_to_check = {entry['airport_code'] for entry in users_thresholds}
-
-        # 2. Calcola il numero di voli per aeroporto
-        placeholders = ', '.join(['%s'] * len(airports_to_check))
-        sql_count = f""" SELECT airport_code, COUNT(*) AS flight_count 
-        FROM flights 
-        WHERE airport_code IN ({placeholders}) 
-        GROUP BY airport_code"""
-        cursor.execute(sql_count, tuple(airports_to_check))
-        flight_counts = {row['airport_code']: row['flight_count'] for row in cursor.fetchall()}
-
-        # 3. Confronto e Generazione Notifiche
+        # 2. Confronto e Generazione Notifiche
         for entry in users_thresholds:
             ap_code = entry['airport_code']
             user_email = entry['user_email']
             high_value = entry['high_value']
             low_value = entry['low_value']
 
-            # Recupera il conteggio dei voli, se l'aeroporto è stato monitorato
-            current_count = flight_counts.get(ap_code, 0)
-            condition = None
+            # Prendi il conteggio da airports_data invece che dal DB
+            if ap_code in airports_data:
+                current_count = airports_data[ap_code].get('flight_count', 0)
+            else:
+                current_count = 0  # Aeroporto non aggiornato
 
+            condition = None  # Inizializza la variabile
+            
             # Verifica soglie
             if high_value is not None and current_count > high_value:
                 condition = f"SUPERA SOGLIA MAX (Voli: {current_count} > Max: {high_value})"

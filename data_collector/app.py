@@ -802,11 +802,10 @@ def get_average_flights_for_user_airport():
         return jsonify({"error": "Database query error during average calculation"}), 500
 
 
-@app.route("/airport/<airport_code>/refresh-flights", methods=["POST"])
-def refresh_flights_for_airport(airport_code):
+@app.route("/airport/refresh-flights", methods=["GET"])
+def refresh_flights_for_airport():
     """
-    Endpoint REST che usa la logica di flight_service.refresh_flights_for_airport_logic.
-    Usa get_db() per ottenere la connessione.
+    Endpoint REST che simula il comportamento del thread di raccolta dati.
     """
 
     data = request.get_json(silent=True) or {} # silent=True -> se il body non è JSON valido, non genera errore
@@ -822,11 +821,35 @@ def refresh_flights_for_airport(airport_code):
         return jsonify({"error": "direction must be 'arrival', 'departure' or 'both'"}), 400
 
     try:
+        # DEBUG: Recupera conteggi di TUTTI gli aeroporti per invio Kafka completo ed esegue il refresh
         conn = get_db()
-        result = refresh_flights_for_airport_logic(conn, airport_code, hours, direction)
-        # Notifica
-        send_update_completed_notification()
-        return jsonify(result), 200
+        cursor = conn.cursor()
+        
+        # 1. Trova tutti gli aeroporti registrati
+        cursor.execute("SELECT DISTINCT airport_code FROM user_airports")
+        all_airports = [row[0] for row in cursor.fetchall()]
+        
+        # 2. Recupera i conteggi per ciascuno
+        results = []
+        airports_data = {}
+        for ap_code in all_airports:
+            results.append(refresh_flights_for_airport_logic(conn, ap_code, hours, direction))
+            cursor.execute(
+                "SELECT COUNT(*) FROM flights WHERE airport_code = %s", 
+                (ap_code,)
+            )
+            count = cursor.fetchone()[0]
+            airports_data[ap_code] = {
+                'flight_count': count,
+                'updated_at': datetime.now().isoformat()
+            }
+        
+        cursor.close()
+        
+        # Notifica Kafka con TUTTI gli aeroporti (per testing completo)
+        send_update_completed_notification(airports_data)
+        # Restituisci i refresh di tutti gli aeroporti
+        return jsonify(results), 200
 
     except CircuitBreakerOpenException as e:
         # Circuito aperto: non tentiamo nemmeno la chiamata a OpenSky

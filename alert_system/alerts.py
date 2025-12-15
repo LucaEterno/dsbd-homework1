@@ -161,10 +161,12 @@ def main():
                 data = json.loads(msg.value().decode('utf-8'))
                 ts = data['timestamp']
                 status = data['status']
-                print(f"Received message in to-alert-system topic. Timestamp = {ts}, Status = {status}")
+                airports_data = data.get('airports_data', {})
+
+                print(f"Received message in to-alert-system topic. Timestamp = {ts}, Status = {status}, Airports={len(airports_data)}")
 
                 # 2. Logica di verifica
-                results_to_notify = verification_logic()
+                results_to_notify = verification_logic(airports_data)
 
                 #3. Invio delle notifiche
                 notification_producer(producer, results_to_notify)
@@ -173,9 +175,15 @@ def main():
                 consumer.commit(message=msg, asynchronous=False)
                 print(f"Committed offset {msg.offset()}")
 
+            except json.JSONDecodeError as e:
+                print(f"Errore JSON decode: {e}. Messaggio skippato.")
+                # Non committiamo, il messaggio verrà riletto
+
             except Exception as e:
                 print(f"Errore durante l'elaborazione: {e}")
-                continue
+                # In questo caso committiamo (avremo una dead letter in produzione)
+                consumer.commit(message=msg, asynchronous=False)
+                
 
     except KeyboardInterrupt:
         print("\nConsumer-Producer interrupted by user.")
