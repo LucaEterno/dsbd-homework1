@@ -52,8 +52,9 @@ services:
       LISTEN_PORT: 5003
       DATACOLLECTOR_BASE_URL: http://data_collector:5002
     ports:
-      - "5003:5003"
       - "50051:50051"
+    expose:
+      - "5003"
     networks:
       - user_net
       - shared_microservices_net
@@ -106,8 +107,8 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       OPENSKY_CB_FAILURE_THRESHOLD: 5
       OPENSKY_CB_RECOVERY_TIMEOUT: 30
-    ports:
-      - "5002:5002"
+    expose:
+      - "5002"
     networks:
       - data_collector_net
       - shared_microservices_net
@@ -195,6 +196,21 @@ services:
       - "1025:1025"
     networks:
       - mailhog_net
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: gateway
+    ports:
+      - "8080:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - user_manager
+      - data_collector
+    networks:
+      - shared_microservices_net
 
 
 volumes:

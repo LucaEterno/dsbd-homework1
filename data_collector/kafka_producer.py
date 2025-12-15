@@ -1,4 +1,4 @@
-from confluent_kafka import Producer
+from confluent_kafka import Producer # type: ignore
 import json
 import os
 from datetime import datetime
