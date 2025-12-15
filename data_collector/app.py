@@ -835,7 +835,7 @@ def refresh_flights_for_airport():
         for ap_code in all_airports:
             results.append(refresh_flights_for_airport_logic(conn, ap_code, hours, direction))
             cursor.execute(
-                "SELECT COUNT(*) FROM flights WHERE airport_code = %s", 
+                " SELECT COUNT(*) FROM flights WHERE airport_code =%s",
                 (ap_code,)
             )
             count = cursor.fetchone()[0]

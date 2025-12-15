@@ -163,7 +163,8 @@ def main():
                 status = data['status']
                 airports_data = data.get('airports_data', {})
 
-                print(f"Received message in to-alert-system topic. Timestamp = {ts}, Status = {status}, Airports={len(airports_data)}")
+                print(f"Received message in to-alert-system topic. Timestamp = {ts}, Status = {status}, Airports={len(airports_data)}\n"
+                      f"Start verifying..")
 
                 # 2. Logica di verifica
                 results_to_notify = verification_logic(airports_data)

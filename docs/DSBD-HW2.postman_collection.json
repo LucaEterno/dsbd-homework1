@@ -1,10 +1,10 @@
 {
 	"info": {
-		"_postman_id": "60a520eb-e610-456c-9879-9c81151ef800",
+		"_postman_id": "393a902d-dca7-45ba-be54-134673345a3c",
 		"name": "DSBD-HW2",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "50448608",
-		"_collection_link": "https://luca-e7-2417121.postman.co/workspace/Team's-Workspace~5b314627-2e29-42cc-87e6-7564a0d84dae/collection/50448608-60a520eb-e610-456c-9879-9c81151ef800?action=share&source=collection_link&creator=50448608"
+		"_exporter_id": "50269869",
+		"_collection_link": "https://rosario32-3880256.postman.co/workspace/New-Workspace~68a11938-45fe-46de-86d9-10df8aab5bd5/collection/50269869-393a902d-dca7-45ba-be54-134673345a3c?action=share&source=collection_link&creator=50269869"
 	},
 	"item": [
 		{
@@ -332,7 +332,7 @@
 			"response": []
 		},
 		{
-			"name": "REFRESH-FLIGHTS EGLL-12H-BOTH",
+			"name": "REFRESH-FLIGHTS-12H-BOTH",
 			"event": [
 				{
 					"listen": "test",
@@ -380,7 +380,7 @@
 			"response": []
 		},
 		{
-			"name": "REFRESH-FLIGHTS LIMC-24H-BOTH",
+			"name": "REFRESH-FLIGHTS-24H-BOTH",
 			"event": [
 				{
 					"listen": "test",
