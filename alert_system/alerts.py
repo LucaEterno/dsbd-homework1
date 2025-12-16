@@ -1,5 +1,5 @@
-from confluent_kafka import Consumer, Producer, KafkaException, KafkaError
-from confluent_kafka.admin import AdminClient
+from confluent_kafka import Consumer, Producer, KafkaException, KafkaError # type: ignore
+from confluent_kafka.admin import AdminClient # type: ignore
 import os
 import json
 from notification_logic import verification_logic
@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from datetime import datetime
 
 # Configurazione Kafka
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
 TOPIC_TO_ALERT_SYSTEM="to-alert-system"
 TOPIC_TO_NOTIFIER="to-notifier"
 
