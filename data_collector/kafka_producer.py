@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 # Configurazione Kafka
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
 TOPIC_TO_ALERT_SYSTEM = "to-alert-system" # Nome del topic specificato
 
 producer_config = {

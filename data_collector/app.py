@@ -871,6 +871,7 @@ def refresh_flights_for_airport():
 
     # Gestione Eccezioni a Livello Globale (Circuit Breaker, DB, Inattesi)
     except CircuitBreakerOpenException as e:
+        # Circuito aperto: non tentiamo nemmeno la chiamata a OpenSky
         return jsonify({
             "error": "OpenSky temporarily unavailable (circuit open). Retry later.",
             "details": str(e)
