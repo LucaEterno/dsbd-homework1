@@ -119,7 +119,7 @@ def store_flights_in_db(conn, airport_code, direction, flights):
             inserted += cursor.rowcount
 
         conn.commit()
-        print(f"[DataCollector] Voli effettivamente inseriti {inserted} in DB per {airport_code} ({direction})")
+        print(f"[DataCollector] {inserted} Voli effettivamente inseriti in DB per {airport_code} ({direction})")
         return inserted
 
     except Error as e:

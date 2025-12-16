@@ -43,7 +43,7 @@ def periodic_data_collection():
             cursor = conn.cursor()
 
             # 1. Recupera la lista univoca di tutti gli aeroporti di interesse
-            sql = "SELECT DISTINCT airport_code FROM user_airports"
+            sql = "SELECT DISTINCT airport_code FROM user_airports "
             cursor.execute(sql)
             airports = [row[0] for row in cursor.fetchall()]
             cursor.close()
@@ -62,8 +62,8 @@ def periodic_data_collection():
                     # a: Recupera conteggio voli
                     cursor = conn_refresh.cursor()
                     cursor.execute(
-                        "SELECT COUNT(*) FROM flights WHERE airport_code = %s", 
-                        (airport_code,)
+                        "SELECT COUNT(*) FROM flights WHERE airport_code = %s AND flight_time >= NOW() - INTERVAL %s HOUR",
+                        (airport_code,PERIOD_HOURS,)
                     )
                     flight_count = cursor.fetchone()[0]
                     cursor.close()
@@ -74,10 +74,8 @@ def periodic_data_collection():
                         'updated_at': datetime.now().isoformat()
                     }
 
-                    print(f"[Collector_Worker] {airport_code}: {flight_count} voli registrati.")
-
                     # b. Chiamata funzione produttore kafka
-                    print(f"[Collector_Worker] Aggiornamento DB per {airport_code} completato. Invio notifica a Kafka.")
+                    print(f"[Collector_Worker] Invio notifica kafka per {airport_code} con {flight_count} voli nelle ultime {PERIOD_HOURS} ore in DB.")
                     send_update_completed_notification(airport_data)
 
                 except Exception as e:

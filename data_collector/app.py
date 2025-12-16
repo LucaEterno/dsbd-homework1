@@ -845,8 +845,8 @@ def refresh_flights_for_airport():
 
                 # b. Recupera conteggio voli
                 cursor.execute(
-                    "SELECT COUNT(*) FROM flights WHERE airport_code = %s",
-                    (ap_code,)
+                    "SELECT COUNT(*) FROM flights WHERE airport_code = %s AND flight_time >= NOW() - INTERVAL %s HOUR",
+                    (ap_code,hours, )
                 )
                 flight_count = cursor.fetchone()[0]
 
@@ -857,6 +857,7 @@ def refresh_flights_for_airport():
                 }
 
                 # c. Notifica Kafka
+                print(f"[DataCollector]Invio notifica kafka per {ap_code} con {flight_count} voli nelle ultime {hours} ore in DB.")
                 send_update_completed_notification(airport_data)
 
             except Exception as e:

@@ -8,9 +8,9 @@ CREATE TABLE IF NOT EXISTS user_airports (
 
 CREATE TABLE IF NOT EXISTS flights (
     airport_code CHAR(4) NOT NULL,
-    direction VARCHAR(255) NOT NULL,
+    direction ENUM('arrival','departure') NOT NULL,
     flight_icao CHAR(6) NOT NULL,
     callsign VARCHAR(10) NOT NULL,
     flight_time DATETIME NOT NULL,
-    PRIMARY KEY (flight_icao)
+    PRIMARY KEY (airport_code, direction, flight_icao, flight_time)
 );

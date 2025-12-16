@@ -63,7 +63,7 @@ def send_update_completed_notification(airport_data: dict):
 
         producer.poll(0)
 
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}][Kafka_Producer] Notifica per {airport_data['airport_code']} inviata a '{TOPIC_TO_ALERT_SYSTEM}'.")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}][Kafka_Producer] Notifica per {airport_data['airport_code']}, con {airport_data['flight_count']} voli inviata a '{TOPIC_TO_ALERT_SYSTEM}'.")
 
     except Exception as e:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}][Kafka_Producer] Errore durante l'invio dell messaggio per {airport_data['airport_code']}: {e}")
