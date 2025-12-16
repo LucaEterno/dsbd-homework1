@@ -62,93 +62,46 @@ def wait_for_kafka_and_topic():
             print(f"Error checking topic status: {e}. Retrying in 5s...", flush=True)
             time.sleep(5)
 
-def format_notification(notification: Dict[str, Any]) -> str:
+def sending_email(notification: Dict[str, Any]):
     """
-    Formatta una singola notifica in una stringa leggibile.
+    Invia la email
     """
+    if not notification:
+        print("Nessuna email da inviare.")
+        return
+
+    # Estrazione dati
     ap_code = notification["airport_code"]
     user_email = notification["user_email"]
     condition = notification["condition"]
-    current_count = notification["current_count"]
-    threshold_max = notification["threshold_max"]
-    threshold_min = notification["threshold_min"]
 
-    # Formatta le soglie per la visualizzazione
-    max_str = f"MAX: {threshold_max}" if threshold_max is not None else "N/A"
-    min_str = f"MIN: {threshold_min}" if threshold_min is not None else "N/A"
+    # Riempimento campi email
+    msg = EmailMessage()
+    msg.set_content(condition)
+    msg['Subject'] = ap_code
+    msg['To'] = user_email
+    msg['From'] = 'alert-system@your-app.com'
 
-    return (
-        f"************************\n"
-        f"  Utente: {user_email}\n"
-        f"  Aeroporto: {ap_code}\n"
-        f"  Condizione: {condition}\n"
-        f"  Voli Attuali: {current_count}\n"
-        f"  Soglie Monitorate: ({min_str} | {max_str})\n"
-        f"  Timestamp: {notification['timestamp']}\n"
-        f"************************"
-    )
+    # Invio dell'email a MailHog
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.send_message(msg)
+        print(f"Email inviata con successo a {user_email} (Aeroporto: {ap_code})..")
+    except Exception as e:
+        print(f"Errore durante l'invio dell'email: {e}")
 
-def print_notifications(notifications: List[Dict[str, Any]]):
-    """
-    Stampa la lista di risultati di notifica in un formato leggibile.
-    """
-    if not notifications:
-        print(f"\n[{datetime.now().isoformat()}] Nessuna notifica da inviare. Le soglie non sono state superate.")
-        return
-
-    print(f"\n[{datetime.now().isoformat()}] Rilevate {len(notifications)} condizioni di allerta da notificare:\n")
-
-    for i, notification in enumerate(notifications):
-        print("="*40)
-        print(f"NOTIFICA {i+1} DI {len(notifications)}")
-        print(format_notification(notification))
-
-    print("="*40)
-
-def sending_email(notifications):
-    """
-    Invia le email
-    """
-    # Stampa
-    if not notifications:
-        print("Nessuna notifica da inviare.")
-        return
-
-    print(f"Trovate {len(notifications)} notifiche da inviare.")
-    print_notifications(notifications)
-
-    # Dati ricevuti da Kafka
-    for i, notification in enumerate(notifications):
-        ap_code = notification["airport_code"]
-        user_email = notification["user_email"]
-        condition = notification["condition"]
-
-        msg = EmailMessage()
-        msg.set_content(condition)
-        msg['Subject'] = ap_code
-        msg['To'] = user_email
-        msg['From'] = 'alert-system@your-app.com'
-
-        # Invio dell'email a MailHog
-        try:
-            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-                server.send_message(msg)
-            print("Email inviata con successo a MailHog.")
-        except Exception as e:
-            print(f"Errore durante l'invio dell'email: {e}")
 
 
 def main():
     wait_for_kafka_and_topic()
     consumer = Consumer(consumer_config)
     consumer.subscribe([TOPIC_TO_NOTIFIER])
-    message_count = 0
-    BATCH_SIZE = 1
-    received_messages = []
     print(f"Alert Notifier System started")
+
     try:
         while True:
-            msg = consumer.poll(5.0)
+            # Poll con timeout per reattività
+            msg = consumer.poll(1.0)
 
             if msg is None:
                 continue
@@ -157,46 +110,33 @@ def main():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
                     print(f"End of partition {msg.partition()}")
                 else:
+                    # Errore grave nel consumer, ma prosegui
                     print(f"Consumer error: {msg.error()}")
                 continue
 
             try:
-                #1. Messaggio ricevuto
+                # 1. Messaggio ricevuto e deserializzato
                 data = json.loads(msg.value().decode('utf-8'))
-                received_messages.append(data)
-                message_count += 1
 
-                print(f"Received message in to-notifier topic.\n"
-                      f"Received message #{message_count} (batch progress: {message_count}/{BATCH_SIZE})")
+                # 2. Invio mail
+                sending_email(data)
 
-                # 2. Logica di invio mail
-                if message_count >= BATCH_SIZE:
-                    # Chiamata funzione che invia ogni mail con un for.
-                    sending_email(received_messages)
+                # 3. Commit Manuale SOLO dopo l'invio riuscito
+                consumer.commit(message=msg, asynchronous=False)
+                print(f"Committed offset {msg.offset()}")
 
-                    consumer.commit(asynchronous=False)
-                    print(f"Committed offset: {msg.offset()}\n")
-
-                    # Reset for next batch
-                    received_messages = []
-                    message_count = 0
+            except json.JSONDecodeError as e:
+                print(f"Errore JSON decode: {e}. Messaggio skippato. Committing.")
+                consumer.commit(message=msg, asynchronous=False)
 
             except Exception as e:
-                print(f"Errore durante l'elaborazione: {e}")
-                consumer.commit(asynchronous=False)
-                continue
+                print(f"Errore durante l'invio dell'email per {data.get('user_email', 'unknown')}: {e}")
+                consumer.commit(message=msg, asynchronous=False)
+
 
     except KeyboardInterrupt:
-        print("\nConsumer-Producer interrupted by user.")
+        print("\nConsumer interrupted by user.")
     finally:
-        # Final cleanup
-        # Processa i messaggi rimanenti in buffer
-        if received_messages:
-            print("\nProcessing remaining messages before shutdown...")
-            # Chiamata alla funzione che invia mail con for
-            sending_email(received_messages)
-            consumer.commit(asynchronous=False)
-
         print("Closing consumer...")
         consumer.close()
         print("Shutdown complete")

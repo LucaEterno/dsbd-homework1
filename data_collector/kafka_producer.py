@@ -34,12 +34,11 @@ def delivery_report(err, msg):
 def send_update_completed_notification(airport_data: dict):
     """
     Invia un messaggio di notifica sul topic 'to-alert-system'.
-    Il payload contiene
-    timestamp, stato di completamento e un dizionario con i dati degli aeroporti aggiornati, ad esempio:
+    Il payload contiene un timestamp e un dizionario con i dati dell'aeroporto aggiornato, ad esempio:
     airport_data = {
-        'LICC': {'flight_count': 45, 'updated_at': '2025-12-14T10:30:00'},
-        'EGLL': {'flight_count': 123, 'updated_at': '2025-12-14T10:30:00'},
-        ...
+        'airport_code' : 'LICC',
+        'flight_count': 45,
+        'updated_at': '2025-12-14T10:30:00'
     }
     """
     if producer is None:
@@ -49,11 +48,10 @@ def send_update_completed_notification(airport_data: dict):
     try:
         kafka_message_payload = {
             'timestamp': datetime.now().isoformat(),
-            'status': 'update_completed',
-            'airports_data': airport_data,
+            'airport_data': airport_data,
         }
 
-        message_key = "data_update_trigger"
+        message_key = f"data_collector_notification_for_{airport_data['airport_code']}"
         message_value = json.dumps(kafka_message_payload).encode('utf-8')
 
         producer.produce(
@@ -65,10 +63,10 @@ def send_update_completed_notification(airport_data: dict):
 
         producer.poll(0)
 
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}][Kafka_Producer] Notifica di completamento inviata a '{TOPIC_TO_ALERT_SYSTEM}'.")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}][Kafka_Producer] Notifica per {airport_data['airport_code']} inviata a '{TOPIC_TO_ALERT_SYSTEM}'.")
 
     except Exception as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}][Kafka_Producer] Errore durante l'invio del messaggio: {e}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}][Kafka_Producer] Errore durante l'invio dell messaggio per {airport_data['airport_code']}: {e}")
 
 def flush_producer():
     """Garantisce che tutti i messaggi in sospeso vengano inviati."""

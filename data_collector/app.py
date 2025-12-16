@@ -806,12 +806,14 @@ def get_average_flights_for_user_airport():
 def refresh_flights_for_airport():
     """
     Endpoint REST che simula il comportamento del thread di raccolta dati.
+    Aggiorna i dati per tutti gli aeroporti e invia una notifica Kafka per ciascuno.
     """
 
-    data = request.get_json(silent=True) or {} # silent=True -> se il body non è JSON valido, non genera errore
-    hours = data.get("hours", 24) # parametro per specificare quante ore indietro prendere i voli
+    data = request.get_json(silent=True) or {}
+    hours = data.get("hours", 24)
     direction = data.get("direction", "both")
 
+    # Pre-validazione dei parametri
     try:
         hours = int(hours)
     except (TypeError, ValueError):
@@ -820,50 +822,63 @@ def refresh_flights_for_airport():
     if direction not in ("arrival", "departure", "both"):
         return jsonify({"error": "direction must be 'arrival', 'departure' or 'both'"}), 400
 
+    api_results = []
+    conn = None
+
     try:
-        # DEBUG: Recupera conteggi di TUTTI gli aeroporti per invio Kafka completo ed esegue il refresh
         conn = get_db()
         cursor = conn.cursor()
-        
+
         # 1. Trova tutti gli aeroporti registrati
         cursor.execute("SELECT DISTINCT airport_code FROM user_airports")
         all_airports = [row[0] for row in cursor.fetchall()]
-        
-        # 2. Recupera i conteggi per ciascuno
-        results = []
-        airports_data = {}
-        for ap_code in all_airports:
-            results.append(refresh_flights_for_airport_logic(conn, ap_code, hours, direction))
-            cursor.execute(
-                " SELECT COUNT(*) FROM flights WHERE airport_code =%s",
-                (ap_code,)
-            )
-            count = cursor.fetchone()[0]
-            airports_data[ap_code] = {
-                'flight_count': count,
-                'updated_at': datetime.now().isoformat()
-            }
-        
-        cursor.close()
-        
-        # Notifica Kafka con TUTTI gli aeroporti (per testing completo)
-        send_update_completed_notification(airports_data)
-        # Restituisci i refresh di tutti gli aeroporti
-        return jsonify(results), 200
+        print(f"[DataCollector] Trovati {len(all_airports)} aeroporti da monitorare.")
 
+        # 2. Per ciascun aeroporto: aggiorna, conta e invia notifica Kafka
+        for ap_code in all_airports:
+            try:
+                print(f"[DataCollector] Aggiornamento dati per {ap_code}...")
+
+                # a. Aggiornamento dati (refresh)
+                refresh_result = refresh_flights_for_airport_logic(conn, ap_code, hours, direction)
+                api_results.append({ap_code: refresh_result})
+
+                # b. Recupera conteggio voli
+                cursor.execute(
+                    "SELECT COUNT(*) FROM flights WHERE airport_code = %s",
+                    (ap_code,)
+                )
+                flight_count = cursor.fetchone()[0]
+
+                airport_data = {
+                    'airport_code': ap_code,
+                    'flight_count': flight_count,
+                    'updated_at': datetime.now().isoformat()
+                }
+
+                # c. Notifica Kafka
+                send_update_completed_notification(airport_data)
+
+            except Exception as e:
+                # Gestione fallimento per singolo aeroporto
+                print(f"[DataCollector] ATTENZIONE: Errore durante l'aggiornamento dati per {ap_code}: {e}")
+                # NON inviamo notifica Kafka
+                api_results.append({ap_code: {"error": str(e)}})
+
+
+        # Restituisci i risultati aggregati di tutti i refresh
+        return jsonify({"status": "processing_complete", "results": api_results}), 200
+
+    # Gestione Eccezioni a Livello Globale (Circuit Breaker, DB, Inattesi)
     except CircuitBreakerOpenException as e:
-        # Circuito aperto: non tentiamo nemmeno la chiamata a OpenSky
         return jsonify({
             "error": "OpenSky temporarily unavailable (circuit open). Retry later.",
             "details": str(e)
         }), 503
 
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-
-    except RuntimeError as e:
-        # errori provenienti da OpenSky (timeout, HTTP error, token ecc.)
-        return jsonify({"error": str(e)}), 502
+    except Error as e:
+        print(f"Errore DB in refresh_flights_for_airport endpoint: {e}")
+        return jsonify({"error": "Database error", "details": str(e)}), 500
 
     except Exception as e:
         print(f"Errore inatteso in refresh_flights_for_airport endpoint: {e}")

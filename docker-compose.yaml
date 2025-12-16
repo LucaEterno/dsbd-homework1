@@ -14,10 +14,10 @@ services:
     container_name: user_manager_db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: rootpwd
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: usermanager_db
       MYSQL_USER: usermgr
-      MYSQL_PASSWORD: usermgrpwd
+      MYSQL_PASSWORD: ${USER_DB_PASSWORD}
     expose:
       - "3306"
     volumes:
@@ -46,7 +46,7 @@ services:
       MYSQL_PORT: 3306
       MYSQL_DATABASE: usermanager_db
       MYSQL_USER: usermgr
-      MYSQL_PASSWORD: usermgrpwd
+      MYSQL_PASSWORD: ${USER_DB_PASSWORD}
       REDIS_HOST: redis_cache
       REDIS_PORT: 6379
       LISTEN_PORT: 5003
@@ -64,10 +64,10 @@ services:
     container_name: data_collector_db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: rootpwd
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: data_db
       MYSQL_USER: userdt
-      MYSQL_PASSWORD: userdtpwd
+      MYSQL_PASSWORD: ${DATA_DB_PASSWORD}
     expose:
       - "3306"
     volumes:
@@ -98,9 +98,9 @@ services:
       MYSQL_PORT: 3306
       MYSQL_DATABASE: data_db
       MYSQL_USER: userdt
-      MYSQL_PASSWORD: userdtpwd
-      CLIENT_ID: rg32-api-client
-      CLIENT_SECRET: 8WeYB3x0xz5W7KPghf5rSgziS0TfNsJZ
+      MYSQL_PASSWORD: ${DATA_DB_PASSWORD}
+      CLIENT_ID: ${CLIENT_ID}
+      CLIENT_SECRET: ${CLIENT_SECRET}
       USER_MANAGER_HOST: user_manager
       USER_MANAGER_PORT: 50051
       LISTEN_PORT: 5002
@@ -168,7 +168,7 @@ services:
       DB_PORT: 3306
       DB_NAME: data_db
       DB_USER: userdt
-      DB_PASSWORD: userdtpwd
+      DB_PASSWORD: ${DATA_DB_PASSWORD}
     networks:
       - kafka_net
       - data_collector_net

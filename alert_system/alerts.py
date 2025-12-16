@@ -144,7 +144,7 @@ def main():
     print(f"Alert System started")
     try:
         while True:
-            msg = consumer.poll(5.0)
+            msg = consumer.poll(1.0)
 
             if msg is None:
                 continue
@@ -160,14 +160,13 @@ def main():
                 #1. Messaggio ricevuto
                 data = json.loads(msg.value().decode('utf-8'))
                 ts = data['timestamp']
-                status = data['status']
-                airports_data = data.get('airports_data', {})
+                airport_data = data.get('airport_data', {})
 
-                print(f"Received message in to-alert-system topic. Timestamp = {ts}, Status = {status}, Airports={len(airports_data)}\n"
+                print(f"Received message in to-alert-system topic. Timestamp = {ts}, airport={airport_data['airport_code']}\n"
                       f"Start verifying..")
 
                 # 2. Logica di verifica
-                results_to_notify = verification_logic(airports_data)
+                results_to_notify = verification_logic(airport_data)
 
                 #3. Invio delle notifiche
                 notification_producer(producer, results_to_notify)
@@ -177,13 +176,14 @@ def main():
                 print(f"Committed offset {msg.offset()}")
 
             except json.JSONDecodeError as e:
-                print(f"Errore JSON decode: {e}. Messaggio skippato.")
-                # Non committiamo, il messaggio verrà riletto
+                print(f"Errore JSON decode: {e}. Messaggio saltato.")
+                # Commit per non bloccare
+                consumer.commit(message=msg, asynchronous=False)
 
             except Exception as e:
-                print(f"Errore durante l'elaborazione: {e}")
-                # In questo caso committiamo (avremo una dead letter in produzione)
-                consumer.commit(message=msg, asynchronous=False)
+                print(f"Errore: Fallimento nell'invio a '{TOPIC_TO_NOTIFIER}': {e}\n"
+                      f"Non committiamo l'offset per riprovare l'invio del messaggio.")
+
                 
 
     except KeyboardInterrupt:

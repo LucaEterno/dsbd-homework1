@@ -26,16 +26,23 @@ def get_db_standalone():
         print(f"Errore nella connessione al database: {e}")
         raise
 
-def verification_logic(airports_data: dict) -> List[Dict[str, Any]]:
+def verification_logic(airport_data: dict) -> List[Dict[str, Any]]:
     """
     Verifica il conteggio dei voli e lo confronta con le soglie degli utenti.
 
     Params:
-        airports_data = dati ricevuti da Kafka
+        airport_data: {
+            'airport_code' : 'LICC',
+            'flight_count': 45,
+            'updated_at': '2025-12-14T10:30:00'
+        }
     """
 
     conn = None
     results_to_notify = []
+
+    airport_code = airport_data.get('airport_code')
+    current_count = airport_data.get('flight_count')
 
     try:
         conn = get_db_standalone()
@@ -45,28 +52,22 @@ def verification_logic(airports_data: dict) -> List[Dict[str, Any]]:
         sql_users = """
             SELECT user_email, airport_code, high_value, low_value
             FROM user_airports
-            WHERE high_value IS NOT NULL OR low_value IS NOT NULL
+            WHERE airport_code = %s AND (high_value IS NOT NULL OR low_value IS NOT NULL)
         """
-        cursor.execute(sql_users)
+        cursor.execute(sql_users, (airport_code,))
         users_thresholds = cursor.fetchall()
 
         if not users_thresholds:
+            print(f"Nessuna soglia definita da nessun utente per l'aeroporto {airport_code}.")
             return []
 
         # 2. Confronto e Generazione Notifiche
         for entry in users_thresholds:
-            ap_code = entry['airport_code']
             user_email = entry['user_email']
             high_value = entry['high_value']
             low_value = entry['low_value']
 
-            # Prendi il conteggio da airports_data invece che dal DB
-            if ap_code in airports_data:
-                current_count = airports_data[ap_code].get('flight_count', 0)
-            else:
-                current_count = 0  # Aeroporto non aggiornato
-
-            condition = None  # Inizializza la variabile
+            condition = None
             
             # Verifica soglie
             if high_value is not None and current_count > high_value:
@@ -79,7 +80,7 @@ def verification_logic(airports_data: dict) -> List[Dict[str, Any]]:
             if condition:
                 results_to_notify.append({
                     "user_email": user_email,
-                    "airport_code": ap_code,
+                    "airport_code": airport_code,
                     "current_count": current_count,
                     "condition": condition,
                     "threshold_max": high_value,
@@ -88,11 +89,16 @@ def verification_logic(airports_data: dict) -> List[Dict[str, Any]]:
                 })
 
     except Error as e:
-        print(f"Errore durante verification_logic: {e}")
+        print(f"Errore DB durante verification_logic per {airport_code}: {e}")
+        return []
+    except Exception as e:
+        print(f"Errore inatteso durante verification_logic per {airport_code}: {e}")
         return []
     finally:
-        if conn and conn.is_connected():
+        if 'cursor' in locals() and cursor is not None:
             cursor.close()
+        if conn and conn.is_connected():
             conn.close()
 
+    print(f"Verifica completata per {airport_code}. Rilevate {len(results_to_notify)} notifiche.")
     return results_to_notify

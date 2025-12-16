@@ -33,10 +33,10 @@ def get_db_standalone():
 
 def periodic_data_collection():
     """Ciclo principale del thread di monitoraggio."""
+
     print(f"Data Collector Thread avviato, periodo: {PERIOD_HOURS} ore.")
     while not stop_event.is_set():
         start_time = time.time()
-        update_successful = False
 
         try:
             conn = get_db_standalone() # Connessione dedicata per il thread
@@ -50,16 +50,16 @@ def periodic_data_collection():
             conn.close()
 
             print(f"[Collector_Worker] Trovati {len(airports)} aeroporti da monitorare.")
-            airports_data = {}
+            airport_data = {}
 
-            # 2. Aggiorna i dati per ciascun aeroporto
+            # 2. Per ciascun aeroporto: recupera il numero di voli e lo invia sul topic Kafka
             for airport_code in airports:
                 try:
                     conn_refresh = get_db_standalone()
                     print(f"[Collector_Worker] Aggiornamento dati per {airport_code}...")
                     refresh_flights_for_airport_logic(conn_refresh, airport_code, PERIOD_HOURS, "both")
 
-                    # NUOVO: Recupera conteggio voli
+                    # a: Recupera conteggio voli
                     cursor = conn_refresh.cursor()
                     cursor.execute(
                         "SELECT COUNT(*) FROM flights WHERE airport_code = %s", 
@@ -68,25 +68,30 @@ def periodic_data_collection():
                     flight_count = cursor.fetchone()[0]
                     cursor.close()
                     
-                    airports_data[airport_code] = {
+                    airport_data = {
+                        'airport_code' : airport_code,
                         'flight_count': flight_count,
                         'updated_at': datetime.now().isoformat()
                     }
 
-                    conn_refresh.close()
                     print(f"[Collector_Worker] {airport_code}: {flight_count} voli registrati.")
+
+                    # b. Chiamata funzione produttore kafka
+                    print(f"[Collector_Worker] Aggiornamento DB per {airport_code} completato. Invio notifica a Kafka.")
+                    send_update_completed_notification(airport_data)
 
                 except Exception as e:
                     print(f"[Collector_Worker] ATTENZIONE: Errore durante l'aggiornamento dati per {airport_code}: {e}")
-                    airports_data[airport_code] = {
+                    print(f"[Collector_Worker] Aggiornamento fallito o non completato. Nessuna notifica Kafka inviata.")
+                    airport_data = {
+                        'airport_code' : airport_code,
                         'flight_count': None,
                         'error': str(e)
                     }
-                    # Chiusura connessione in caso di errore
+                # Chiusura della connessione sia in caso di successo che di fallimento
+                finally:
                     if conn_refresh is not None and conn_refresh.is_connected():
                         conn_refresh.close()
-
-            update_successful = True
 
         except Error as e:
             print(f"[Collector_Worker] Errore DB nel thread di monitoraggio: {e}")
@@ -96,21 +101,13 @@ def periodic_data_collection():
         except Exception as e:
             print(f"[Collector_Worker] Errore inatteso nel thread di monitoraggio: {e}")
 
-        # 3. Invio del messaggio su Kafka (Producer) - Eseguito solo se l'aggiornamento è terminato
-        if update_successful:
-            print(f"[Collector_Worker] Aggiornamento DB completato. Invio notifica a Kafka.")
-            # Chiamata alla funzione producer che invia il trigger
-            send_update_completed_notification(airports_data)
-        else:
-            print(f"[Collector_Worker] Aggiornamento fallito o non completato. Nessuna notifica Kafka inviata.")
-
-        # 4. Metti in pausa fino al prossimo ciclo
+        # 3. Metti in pausa fino al prossimo ciclo
         elapsed_time = time.time() - start_time
         sleep_time = max(0, PERIOD_SECONDS - elapsed_time)
         print(f" [Collector_Worker] Ciclo completato in {elapsed_time:.2f}s. Prossimo ciclo tra {sleep_time:.2f}s.")
         stop_event.wait(sleep_time)
 
-    # 5. Flush del producer prima della chiusura del thread
+    # 4. Flush del producer prima della chiusura del thread
     print(f"[Collector_Worker] Data Collector Thread terminato. Flusso Kafka in uscita...")
     flush_producer()
     print(f"[Collector_Worker] Flusso Kafka completato.")
