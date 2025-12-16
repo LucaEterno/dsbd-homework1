@@ -69,11 +69,11 @@ def verification_logic(airports_data: dict) -> List[Dict[str, Any]]:
             condition = None  # Inizializza la variabile
             
             # Verifica soglie
-            if high_value is not None and current_count > high_value:
-                condition = f"SUPERA SOGLIA MAX (Voli: {current_count} > Max: {high_value})"
+            if high_value is not None and current_count >= high_value:
+                condition = f"SUPERA SOGLIA MAX (Voli: {current_count} >= Max: {high_value})"
 
-            elif low_value is not None and current_count < low_value:
-                condition = f"SOTTO SOGLIA MIN (Voli: {current_count} < Min: {low_value})"
+            elif low_value is not None and current_count <= low_value:
+                condition = f"SOTTO SOGLIA MIN (Voli: {current_count} <= Min: {low_value})"
 
             # Aggiungi alla lista dei risultati se è stata trovata una condizione
             if condition:
