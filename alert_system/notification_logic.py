@@ -44,6 +44,10 @@ def verification_logic(airport_data: dict) -> List[Dict[str, Any]]:
     airport_code = airport_data.get('airport_code')
     current_count = airport_data.get('flight_count')
 
+    if current_count is None:
+        print("flight_count missing -> skip")
+        return []
+
     try:
         conn = get_db_standalone()
         cursor = conn.cursor(dictionary=True)

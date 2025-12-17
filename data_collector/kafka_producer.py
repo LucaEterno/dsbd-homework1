@@ -31,6 +31,7 @@ def delivery_report(err, msg):
     else:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [Kafka_Producer] Messaggio inviato a {msg.topic()} [{msg.partition()}] @ offset {msg.offset()}")
 
+
 def send_update_completed_notification(airport_data: dict):
     """
     Invia un messaggio di notifica sul topic 'to-alert-system'.

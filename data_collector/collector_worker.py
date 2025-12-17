@@ -62,8 +62,8 @@ def periodic_data_collection():
                     # a: Recupera conteggio voli
                     cursor = conn_refresh.cursor()
                     cursor.execute(
-                        "SELECT COUNT(*) FROM flights WHERE airport_code = %s AND flight_time >= NOW() - INTERVAL %s HOUR",
-                        (airport_code,PERIOD_HOURS,)
+                        "SELECT COUNT(*) FROM flights WHERE airport_code = %s AND flight_time >= UTC_TIMESTAMP() - INTERVAL %s HOUR",
+                        (airport_code, PERIOD_HOURS,)
                     )
                     flight_count = cursor.fetchone()[0]
                     cursor.close()

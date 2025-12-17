@@ -78,7 +78,7 @@ services:
       - ./data_collector/init_data_db.sql:/docker-entrypoint-initdb.d/init_data_db.sql
     networks:
       - data_collector_net
-      - alertSystem_dataDB_net
+      - alertsystem_datadb_net
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$MYSQL_ROOT_PASSWORD", "--silent" ]
       interval: 5s
@@ -93,7 +93,7 @@ services:
       mysql_data_db:
         condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
     restart: always
     environment:
       MYSQL_HOST: mysql_data_db
@@ -115,8 +115,7 @@ services:
       - data_collector_net
       - gRPC_net
       - kafka_net
-      - gateway_data_net
-
+      - gateway_data_collector_net
 
   kafka:
     image: confluentinc/cp-kafka:7.4.0
@@ -174,7 +173,7 @@ services:
       mysql_data_db:
         condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
     restart: always
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -185,14 +184,14 @@ services:
       DB_PASSWORD: ${DATA_DB_PASSWORD}
     networks:
       - kafka_net
-      - alertSystem_dataDB_net
+      - alertsystem_datadb_net
 
   alert_notifier_system:
     build: ./alert_notifier_system
     container_name: alert_notifier_system
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
     restart: always
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -228,7 +227,7 @@ services:
       - data_collector
     networks:
       - gateway_user_net
-      - gateway_data_net
+      - gateway_data_collector_net
 
 
 volumes:
@@ -242,6 +241,6 @@ networks:
   gRPC_net:
   kafka_net:
   mailhog_net:
-  alertSystem_dataDB_net:
+  alertsystem_datadb_net:
   gateway_user_net:
-  gateway_data_net:
+  gateway_data_collector_net:
