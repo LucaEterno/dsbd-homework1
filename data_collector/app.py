@@ -802,7 +802,7 @@ def get_average_flights_for_user_airport():
         return jsonify({"error": "Database query error during average calculation"}), 500
 
 
-@app.route("/airport/refresh-flights", methods=["GET"])
+@app.route("/airport/refresh-flights", methods=["POST"])
 def refresh_flights_for_airport():
     """
     Endpoint REST che simula il comportamento del thread di raccolta dati.
@@ -845,8 +845,8 @@ def refresh_flights_for_airport():
 
                 # b. Recupera conteggio voli
                 cursor.execute(
-                    "SELECT COUNT(*) FROM flights WHERE airport_code = %s AND flight_time >= NOW() - INTERVAL %s HOUR",
-                    (ap_code,hours, )
+                    "SELECT COUNT(*) FROM flights WHERE airport_code = %s AND flight_time >= UTC_TIMESTAMP() - INTERVAL %s HOUR",
+                    (ap_code, hours,)
                 )
                 flight_count = cursor.fetchone()[0]
 
