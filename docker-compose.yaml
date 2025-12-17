@@ -58,7 +58,7 @@ services:
     networks:
       - user_net
       - gRPC_net
-      - gateway_net
+      - gateway_user_net
 
   mysql_data_db:
     image: mysql:8.0
@@ -78,6 +78,7 @@ services:
       - ./data_collector/init_data_db.sql:/docker-entrypoint-initdb.d/init_data_db.sql
     networks:
       - data_collector_net
+      - alertsystem_datadb_net
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$MYSQL_ROOT_PASSWORD", "--silent" ]
       interval: 5s
@@ -114,7 +115,7 @@ services:
       - data_collector_net
       - gRPC_net
       - kafka_net
-      - gateway_net
+      - gateway_data_collector_net
 
   kafka:
     image: confluentinc/cp-kafka:7.4.0
@@ -183,7 +184,7 @@ services:
       DB_PASSWORD: ${DATA_DB_PASSWORD}
     networks:
       - kafka_net
-      - data_collector_net
+      - alertsystem_datadb_net
 
   alert_notifier_system:
     build: ./alert_notifier_system
@@ -225,7 +226,8 @@ services:
       - user_manager
       - data_collector
     networks:
-      - gateway_net
+      - gateway_user_net
+      - gateway_data_collector_net
 
 
 volumes:
@@ -239,4 +241,6 @@ networks:
   gRPC_net:
   kafka_net:
   mailhog_net:
-  gateway_net:
+  alertsystem_datadb_net:
+  gateway_user_net:
+  gateway_data_collector_net:
