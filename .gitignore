@@ -58,3 +58,10 @@ htmlcov/
 *.tmp
 *.bak
 *.backup
+
+# Variabili di ambiente
+.env
+
+# Certificati
+.crt
+.key
