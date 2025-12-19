@@ -14,3 +14,5 @@ CREATE TABLE IF NOT EXISTS flights (
     flight_time DATETIME NOT NULL,
     PRIMARY KEY (airport_code, direction, flight_icao, flight_time)
 );
+
+CREATE INDEX idx_flights_airport_time ON flights (airport_code, flight_time);

@@ -52,7 +52,8 @@ def send_update_completed_notification(airport_data: dict):
             'airport_data': airport_data,
         }
 
-        message_key = f"data_collector_notification_for_{airport_data['airport_code']}"
+        #message_key = f"data_collector_notification_for_{airport_data['airport_code']}"
+        message_key = f"data_collector_notification_for_{airport_data['airport_code']}".encode("utf-8")
         message_value = json.dumps(kafka_message_payload).encode('utf-8')
 
         producer.produce(

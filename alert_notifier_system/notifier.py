@@ -14,7 +14,7 @@ TOPIC_TO_NOTIFIER="to-notifier"
 
 # Configurazione mailhog
 SMTP_SERVER = os.getenv("SMTP_SERVER", "mailhog")
-SMTP_PORT = os.getenv("SMTP_PORT", "1025")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "1025"))
 
 
 consumer_config = {
@@ -87,8 +87,10 @@ def sending_email(notification: Dict[str, Any]):
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.send_message(msg)
         print(f"Email inviata con successo a {user_email} (Aeroporto: {ap_code})..")
+        return True
     except Exception as e:
         print(f"Errore durante l'invio dell'email: {e}")
+        return False
 
 
 
@@ -119,11 +121,14 @@ def main():
                 data = json.loads(msg.value().decode('utf-8'))
 
                 # 2. Invio mail
-                sending_email(data)
+                ok = sending_email(data)
 
                 # 3. Commit Manuale SOLO dopo l'invio riuscito
-                consumer.commit(message=msg, asynchronous=False)
-                print(f"Committed offset {msg.offset()}")
+                if ok:
+                    consumer.commit(message=msg, asynchronous=False)
+                    print(f"Committed offset {msg.offset()}")
+                else:
+                    print("Email failed -> not committing")
 
             except json.JSONDecodeError as e:
                 print(f"Errore JSON decode: {e}. Messaggio skippato. Committing.")
