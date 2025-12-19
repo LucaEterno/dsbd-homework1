@@ -1,6 +1,6 @@
-# DSBD Homework 1 - Flight Data Collection System
+# DSBD Homework 1 & 2 - Flight Data Collection & Alert System
 
-Sistema distribuito per la raccolta e gestione di dati sui voli tramite microservizi. Il sistema permette agli utenti di registrarsi, specificare aeroporti di interesse e ricevere informazioni sui voli in arrivo e partenza.
+Sistema distribuito per la raccolta e gestione di dati sui voli tramite microservizi con sistema di allerta basato su messaggistica Kafka. Il sistema permette agli utenti di registrarsi, specificare aeroporti di interesse con soglie di monitoraggio personalizzate, ricevere informazioni sui voli e notifiche email automatiche quando le condizioni di allerta vengono soddisfatte.
 
 ## 📋 Indice
 
@@ -15,27 +15,67 @@ Sistema distribuito per la raccolta e gestione di dati sui voli tramite microser
 
 ## 🏗️ Architettura
 
-Il sistema è composto da due microservizi principali che comunicano tra loro:
+Il sistema è basato su un'architettura a microservizi con messaggistica asincrona:
 
 ```
-  ┌─────────────────┐         gRPC          ┌──────────────────┐
-  │  User Manager   │ ◄─────────────────────┤ Data Collector   │
-  │   (Flask + gRPC)│                       │     (Flask)      │
-  └─────────────────┘                       └────────┬─────────┘
-     │            │                                  │
-     │            │                                  │
-┌────▼─────┐ ┌────▼─────┐                       ┌────▼─────┐
-│  MySQL   │ │  Redis   │                       │  MySQL   │
-│  Users   │ │  Cache   │                       │  Flights │
-└──────────┘ └──────────┘                       └──────────┘
-        
+                           ┌─────────────────┐
+                           │  API Gateway    │  HTTPS/HTTP
+                           │    (Nginx)      │
+                           └────────┬────────┘
+                                    │
+                    ┌───────────────┴───────────────┐
+                    │                               │
+         ┌──────────▼────────┐         ┌───────────▼──────────┐
+         │  User Manager     │  gRPC   │  Data Collector      │
+         │  (Flask + gRPC)   │◄────────┤  (Flask + Worker)    │
+         └──────────┬────────┘         └───────────┬──────────┘
+            │       │                       │      │      │
+     ┌──────▼──┐ ┌──▼─────┐          ┌─────▼──┐   │      │
+     │  MySQL  │ │ Redis  │          │ MySQL  │   │      │
+     │  Users  │ │ Cache  │          │ Flights│   │      │
+     └─────────┘ └────────┘          └────────┘   │      │
+                                                   │      │
+                                        ┌──────────▼──────▼─────────┐
+                                        │   Kafka (KRaft Mode)      │
+                                        │  Topic: to-alert-system   │
+                                        └──────────┬────────────────┘
+                                                   │
+                                        ┌──────────▼────────────┐
+                                        │   Alert System        │
+                                        │  (Consumer + Logic)   │
+                                        └──────────┬────────────┘
+                                                   │
+                                        ┌──────────▼────────────┐
+                                        │   Kafka               │
+                                        │  Topic: to-notifier   │
+                                        └──────────┬────────────┘
+                                                   │
+                                        ┌──────────▼────────────┐
+                                        │  Alert Notifier       │
+                                        │  (Consumer + SMTP)    │
+                                        └──────────┬────────────┘
+                                                   │
+                                        ┌──────────▼────────────┐
+                                        │     MailHog           │
+                                        │  (SMTP Test Server)   │
+                                        └───────────────────────┘
 ```
 
 ### Caratteristiche principali:
+
+**Homework 1:**
 - **Idempotenza**: Le operazioni di scrittura sono idempotenti grazie a Redis
 - **Comunicazione gRPC**: User Manager e Data Collector comunicano tramite gRPC
 - **Worker periodico**: Aggiornamento automatico dei dati sui voli ogni 12 ore
 - **Persistenza**: Database MySQL separati per utenti e dati sui voli
+
+**Homework 2:**
+- **Messaggistica Kafka**: Sistema publish-subscribe per comunicazione asincrona
+- **Alert System**: Monitoraggio automatico delle soglie personalizzate per utente
+- **Notifiche Email**: Invio automatico di email tramite sistema di notifica dedicato
+- **Circuit Breaker**: Pattern di resilienza per chiamate all'API OpenSky
+- **API Gateway**: Reverse proxy Nginx con supporto HTTPS
+- **Soglie Personalizzate**: Ogni utente può impostare soglie min/max per i propri aeroporti
 
 ## 🔧 Componenti
 
@@ -51,12 +91,56 @@ Gestisce gli utenti del sistema con le seguenti funzionalità:
 
 ### 2. Data Collector
 Gestisce i dati sui voli e le associazioni utente-aeroporto:
-- Aggiunta/rimozione aeroporti di interesse per utente
-- Recupero voli da OpenSky Network API (OAuth2)
-- Worker periodico per aggiornamento automatico dati
+- Aggiunta/rimozione aeroporti di interesse per utente con soglie personalizzate
+- Recupero voli da OpenSky Network API (OAuth2) con Circuit Breaker
+- Worker periodico per aggiornamento automatico dati (ogni 12h)
 - Query avanzate (ultimo volo, media voli giornalieri)
+- Produttore Kafka per notifiche di aggiornamento
 
-**Tecnologie**: Flask, gRPC client, MySQL, OpenSky API
+**Tecnologie**: Flask, gRPC client, MySQL, OpenSky API, Kafka Producer, Circuit Breaker
+
+### 3. Kafka Broker
+Message broker per comunicazione asincrona:
+- Modalità KRaft (senza Zookeeper)
+- Topic `to-alert-system`: Notifiche di aggiornamento voli
+- Topic `to-notifier`: Allerte da inviare via email
+- Retention: 24 ore, max 1GB
+
+**Tecnologie**: Confluent Kafka 7.4.0
+
+### 4. Alert System
+Sistema di elaborazione degli alert:
+- Consumer Kafka (topic: `to-alert-system`)
+- Verifica soglie personalizzate per utente/aeroporto
+- Generazione notifiche quando le soglie vengono superate
+- Producer Kafka per invio a Alert Notifier
+
+**Tecnologie**: Python, Kafka Consumer/Producer, MySQL
+
+### 5. Alert Notifier System
+Sistema di invio notifiche:
+- Consumer Kafka (topic: `to-notifier`)
+- Composizione e invio email
+- Integrazione con MailHog per testing
+
+**Tecnologie**: Python, Kafka Consumer, SMTP
+
+### 6. MailHog
+SMTP test server per visualizzazione email:
+- Interfaccia web (porta 8025)
+- SMTP server (porta 1025)
+- Cattura tutte le email inviate
+
+**Tecnologie**: MailHog
+
+### 7. API Gateway
+Reverse proxy per routing e sicurezza:
+- Routing: `/api/users/` → User Manager, `/api/data/` → Data Collector
+- Supporto HTTP (porta 8080) e HTTPS (porta 8443)
+- Certificati SSL self-signed
+- Rate limiting e body size control
+
+**Tecnologie**: Nginx
 
 ### 3. Database
 
@@ -74,6 +158,8 @@ users (
 user_airports (
   user_email VARCHAR(255),
   airport_code CHAR(4),
+  high_value INT,           -- Soglia massima per alert
+  low_value INT,            -- Soglia minima per alert
   PRIMARY KEY (user_email, airport_code)
 )
 
@@ -138,13 +224,26 @@ curl -X POST http://localhost:5003/users/register \
     "cf": "RSSMRA80A01H501U"
   }'
 
-# 2. Aggiunta aeroporto di interesse
+# 2. Aggiunta aeroporto di interesse con soglie di monitoraggio
 curl -X POST http://localhost:5002/user/airports \
   -H "Content-Type: application/json" \
   -d '{
     "email": "mario.rossi@example.com",
     "password": "mypassword",
-    "airport_code": "LICC"
+    "airport_code": "LICC",
+    "high_value": 50,
+    "low_value": 10
+  }'
+
+# 2b. Modifica soglie per un aeroporto esistente
+curl -X PUT http://localhost:5002/user/airports \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "mario.rossi@example.com",
+    "password": "mypassword",
+    "airport_code": "LICC",
+    "high_value": 60,
+    "low_value": 15
   }'
 
 # 3. Recupero lista aeroporti
@@ -220,15 +319,21 @@ Cancella un utente esistente (idempotente)
 
 ### Data Collector (porta 5002)
 
+**Nota**: Gli endpoint sono accessibili tramite API Gateway su:
+- HTTP: `http://localhost:8080/api/data/`
+- HTTPS: `https://localhost:8443/api/data/`
+
 #### POST /user/airports
-Aggiunge un aeroporto di interesse per l'utente
+Aggiunge un aeroporto di interesse per l'utente con soglie opzionali
 
 **Body**:
 ```json
 {
   "email": "user@example.com",
   "password": "password123",
-  "airport_code": "LICC"
+  "airport_code": "LICC",
+  "high_value": 50,  // opzionale - soglia massima per alert
+  "low_value": 10    // opzionale - soglia minima per alert
 }
 ```
 
@@ -238,8 +343,28 @@ Aggiunge un aeroporto di interesse per l'utente
 - `401`: Credenziali errate
 - `400`: Formato ICAO invalido
 
+#### PUT /user/airports
+**[NUOVO HW2]** Modifica le soglie di monitoraggio per un aeroporto esistente
+
+**Body**:
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "airport_code": "LICC",
+  "high_value": 60,  // almeno uno richiesto
+  "low_value": 20    // almeno uno richiesto
+}
+```
+
+**Risposte**:
+- `200`: Soglie aggiornate
+- `401`: Credenziali errate
+- `404`: Associazione non esistente
+- `400`: Parametri invalidi (high_value deve essere > low_value)
+
 #### GET /user/airports
-Ottiene la lista degli aeroporti di interesse
+Ottiene la lista degli aeroporti di interesse con le soglie configurate
 
 **Query params**: `email`
 
@@ -247,7 +372,18 @@ Ottiene la lista degli aeroporti di interesse
 ```json
 {
   "email": "user@example.com",
-  "airports": ["LICC", "LIRF"],
+  "airports": [
+    {
+      "airport_code": "LICC",
+      "high_value": 50,
+      "low_value": 10
+    },
+    {
+      "airport_code": "LIRF",
+      "high_value": null,
+      "low_value": 5
+    }
+  ],
   "count": 2
 }
 ```
@@ -323,13 +459,20 @@ Aggiorna manualmente i dati sui voli
 
 ## 🛠️ Tecnologie
 
+### Homework 1
 - **Python 3.11**: Linguaggio principale
 - **Flask**: Framework web per REST API
 - **gRPC**: Comunicazione inter-servizi
 - **MySQL 8.0**: Database relazionale
 - **Redis 7**: Cache per idempotenza
 - **Docker & Docker Compose**: Containerizzazione e orchestrazione
-- **OpenSky Network API**: Sorgente dati sui voli
+- **OpenSky Network API**: Sorgente dati sui voli (OAuth2)
+
+### Homework 2
+- **Apache Kafka 7.4.0**: Message broker (modalità KRaft)
+- **Nginx**: Reverse proxy e API Gateway
+- **MailHog**: SMTP test server per development
+- **Circuit Breaker Pattern**: Resilienza per servizi esterni
 
 ### Librerie Python principali:
 - `flask`: Web framework
@@ -337,6 +480,7 @@ Aggiorna manualmente i dati sui voli
 - `mysql-connector-python`: Driver MySQL
 - `redis`: Client Redis
 - `requests`: HTTP client per OpenSky API
+- `confluent-kafka`: Client Kafka producer/consumer
 
 ## 📁 Struttura del Progetto
 
@@ -345,8 +489,10 @@ homework1/
 ├── data_collector/
 │   ├── app.py                    # Flask app principale
 │   ├── collector_worker.py       # Worker thread per aggiornamenti periodici
-│   ├── flight_services.py        # Logica di business per voli
+│   ├── opensky_client.py         # Logica business per voli (con CB)
 │   ├── opensky_auth.py           # Autenticazione OAuth2 OpenSky
+│   ├── circuit_breaker.py        # Implementazione Circuit Breaker pattern
+│   ├── kafka_producer.py         # Producer Kafka per notifiche
 │   ├── init_data_db.sql          # Schema DB data
 │   ├── Dockerfile
 │   ├── requirements.txt
@@ -363,8 +509,30 @@ homework1/
 │   ├── requirements.txt
 │   ├── user_manager_pb2.py       # gRPC generated
 │   └── user_manager_pb2_grpc.py  # gRPC generated
-├── docker-compose.yaml           # Orchestrazione servizi
+├── alert_system/
+│   ├── alerts.py                 # Consumer Kafka + logica alert
+│   ├── notification_logic.py     # Verifica soglie e generazione notifiche
+│   ├── Dockerfile
+│   └── requirements.txt
+├── alert_notifier_system/
+│   ├── notifier.py               # Consumer Kafka + invio email
+│   ├── Dockerfile
+│   └── requirements.txt
+├── kafka/
+│   ├── topic_setup.sh            # Script creazione topic Kafka
+│   └── Dockerfile
+├── gateway/
+│   ├── nginx.conf                # Configurazione Nginx
+│   ├── Dockerfile
+│   └── SSL_certificate/
+│       ├── nginx-selfsigned.crt  # Certificato SSL
+│       └── nginx-selfsigned.key  # Chiave privata SSL
+├── docs/
+│   ├── API.md                    # Documentazione API completa
+│   └── DSBD-HW2.postman_collection.json  # Collection Postman
+├── docker-compose.yaml           # Orchestrazione servizi (11 container)
 ├── .gitignore
+├── LICENSE
 └── README.md
 ```
 
@@ -385,6 +553,21 @@ Tutte le variabili sono configurate in `docker-compose.yaml`:
 - `LISTEN_PORT`: Porta Flask (default: 5002)
 - `USER_MANAGER_HOST`, `USER_MANAGER_PORT`: gRPC endpoint
 - `CLIENT_ID`, `CLIENT_SECRET`: Credenziali OpenSky
+- `KAFKA_BOOTSTRAP_SERVERS`: Broker Kafka (default: kafka:9092)
+- `OPENSKY_CB_FAILURE_THRESHOLD`: Soglia fallimenti Circuit Breaker (default: 5)
+- `OPENSKY_CB_RECOVERY_TIMEOUT`: Timeout recovery CB in secondi (default: 30)
+
+**Alert System**:
+- `KAFKA_BOOTSTRAP_SERVERS`: Broker Kafka
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`: Connessione MySQL data_db
+
+**Alert Notifier**:
+- `KAFKA_BOOTSTRAP_SERVERS`: Broker Kafka
+- `SMTP_SERVER`: Server SMTP (default: mailhog)
+- `SMTP_PORT`: Porta SMTP (default: 1025)
+
+**Gateway**:
+- Nessuna variabile, tutto configurato in `nginx.conf`
 
 ### Worker periodico
 
@@ -398,17 +581,42 @@ Il Data Collector include un thread che ogni 12 ore:
 ### Idempotenza
 Le operazioni di registrazione e cancellazione utente sono idempotenti grazie a:
 - Header `requestID` obbligatorio
-- Hash del contenuto della richiesta
-- Cache Redis con TTL (24 ore)
+- Hash del contenuto della richiesta (SHA-256)
+- Cache Redis con TTL (3 minuti)
 - Chiave: `{operation}:{requestID}:{content_hash}`
+- Meccanismo IN_PROGRESS per prevenire richieste concorrenti (409 Conflict)
+
+### Circuit Breaker
+Implementazione del pattern Circuit Breaker per le chiamate all'API OpenSky:
+- **Stati**: CLOSED → OPEN → HALF_OPEN
+- **Soglia fallimenti**: 5 errori consecutivi (configurabile)
+- **Recovery timeout**: 30 secondi (configurabile)
+- **Protezione**: Evita chiamate a servizi non disponibili
+- **Endpoint debug**: `GET /debug/opensky-cb` per monitorare lo stato
+
+### Sistema di Alert
+**Flusso di elaborazione**:
+1. Data Collector aggiorna i voli e invia messaggio Kafka a `to-alert-system`
+2. Alert System riceve il messaggio e verifica le soglie configurate dagli utenti
+3. Per ogni condizione soddisfatta (count >= high_value OR count <= low_value):
+   - Genera una notifica con i dettagli
+   - Invia messaggio Kafka a `to-notifier`
+4. Alert Notifier riceve e compone email
+5. Email inviata a MailHog (porta 8025 per visualizzazione)
+
+**Gestione Offset Kafka**:
+- Commit manuale dopo elaborazione riuscita
+- In caso di errore, il messaggio viene riprocessato
+- Consumer group separati per Alert System e Alert Notifier
 
 ### Codici ICAO
-Gli aeroporti usano codici ICAO a 4 lettere (es. LIMC = Milano, EGLL = Londra)
+Gli aeroporti usano codici ICAO a 4 lettere (es. LICC = Catania, LIRF = Roma Fiumicino)
 
 ### Limitazioni OpenSky API
-- Massimo 2 giorni di intervallo per richiesta
+- Massimo 48 ore di intervallo per richiesta
 - Rate limiting applicato
 - Richiede autenticazione OAuth2
+- Circuit Breaker attivo per gestire indisponibilità
 
 ## 🐛 Troubleshooting
 
