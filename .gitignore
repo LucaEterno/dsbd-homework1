@@ -48,6 +48,7 @@ logs/
 secrets/
 *.pem
 *.key
+k8s/secrets/*.yaml
 
 # Test coverage
 .coverage
