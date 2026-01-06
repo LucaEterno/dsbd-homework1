@@ -12,6 +12,9 @@ from opensky_client import refresh_flights_for_airport_logic, opensky_cb
 from kafka_producer import send_update_completed_notification
 from circuit_breaker import CircuitBreakerOpenException
 
+from metrics import (
+    HTTP_REQUESTS_TOTAL, HTTP_INPROGRESS, SERVICE_NAME, NODE_NAME, init_monitoring
+)
 
 app = Flask(__name__)
 
@@ -897,9 +900,14 @@ def debug_opensky_cb():
         "recovery_timeout": opensky_cb.recovery_timeout
     }), 200
 
+@app.before_request
+def count_requests():
+    HTTP_REQUESTS_TOTAL.labels(service=SERVICE_NAME, node=NODE_NAME).inc()
+
 if __name__ == "__main__":
     # 1. Avvio thread
     collector_thread = collector_worker.start_collector_thread()
+    init_monitoring()
 
     # 2. Avvio Flask
     try:

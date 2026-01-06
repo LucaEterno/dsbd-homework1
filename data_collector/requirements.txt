@@ -4,4 +4,4 @@ grpcio
 grpcio-tools
 requests
 confluent_kafka
-
+prometheus_client
