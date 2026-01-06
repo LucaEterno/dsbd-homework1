@@ -5,6 +5,7 @@ from mysql.connector import Error
 from flask import request, jsonify, Flask, g
 
 from redis_utils import generate_content_hash, initialize_redis_client, check_idempotency, save_idempotent_response
+from exporter import init_monitoring, REQUEST_COUNT, SERVICE_NAME, NODE_NAME
 
 app = Flask(__name__)
 initialize_redis_client() # Inizializza redis_client
@@ -236,7 +237,11 @@ def delete_user():
     save_idempotent_response(idempotency_key, status_code, response_data)
     return jsonify(response_data), status_code
 
+@app.before_request
+def count_requests():
+    REQUEST_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME).inc()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=LISTEN_PORT, debug=True)
+    init_monitoring()
+    app.run(host="0.0.0.0", port=LISTEN_PORT, debug=False)
 

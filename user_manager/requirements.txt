@@ -4,3 +4,4 @@ grpcio
 grpcio-tools
 redis
 requests
+prometheus_client
