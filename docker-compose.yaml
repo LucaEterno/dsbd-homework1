@@ -111,6 +111,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       OPENSKY_CB_FAILURE_THRESHOLD: 5
       OPENSKY_CB_RECOVERY_TIMEOUT: 30
+      NODE_NAME: placeholder # andrà tolto e sostituito con K8s
     expose:
       - "5002"
     networks:
