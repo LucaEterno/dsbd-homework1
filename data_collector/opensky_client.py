@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 from mysql.connector import Error
 import time
@@ -6,6 +7,8 @@ from datetime import datetime, timezone
 from opensky_auth import get_opensky_token
 from circuit_breaker import CircuitBreaker, CircuitBreakerOpenException
 import requests
+
+from metrics import SERVICE_NAME, NODE_NAME, DB_UPDATE_TIME
 
 # Configura il Circuit Breaker per le chiamate OpenSky
 failure_threshold = int(os.getenv("OPENSKY_CB_FAILURE_THRESHOLD", "5"))
@@ -95,6 +98,7 @@ def store_flights_in_db(conn, airport_code, direction, flights):
 
     inserted = 0
 
+    start_db = time.time()
     try:
         cursor = conn.cursor()
         sql = """
@@ -119,6 +123,9 @@ def store_flights_in_db(conn, airport_code, direction, flights):
             inserted += cursor.rowcount
 
         conn.commit()
+        # Registrazione durata dell'aggiornamento del db per monitoraggio
+        duration = time.time() - start_db
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="store_flights_in_db").set(duration)
         print(f"[DataCollector] {inserted} Voli effettivamente inseriti in DB per {airport_code} ({direction})")
         return inserted
 

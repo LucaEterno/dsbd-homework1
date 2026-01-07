@@ -6,7 +6,7 @@ from mysql.connector import Error
 from flask import request, jsonify, Flask, g
 
 from redis_utils import generate_content_hash, initialize_redis_client, check_idempotency, save_idempotent_response
-from metrics import init_monitoring, SERVICE_NAME, NODE_NAME, REQUEST_COUNT, ERROR_COUNT, RESPONSE_TIME, DB_UPDATE_TIME
+from metrics import init_monitoring, SERVICE_NAME, NODE_NAME, REQUESTS_COUNT, ERRORS_COUNT, RESPONSE_TIME, DB_UPDATE_TIME
 
 app = Flask(__name__)
 initialize_redis_client() # Inizializza redis_client
@@ -116,7 +116,7 @@ def register():
 
         # Registrazione durata dell'aggiornamento del db per monitoraggio
         duration = time.time() - start_db
-        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="registration_failed").set(duration)
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="registration: failed").set(duration)
 
         # Errore: email duplicata (MySQL error code 1062)
         if e.errno == 1062:
@@ -193,10 +193,6 @@ def delete_user():
         cursor.execute(query_check, (email, password))
         result = cursor.fetchone()
 
-        # Registrazione durata dell'aggiornamento del db per monitoraggio
-        duration = time.time() - start_db
-        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="delete_user:check_existence").set(duration)
-
         if not result:
             print(f"[UserManagerApp] FAILED: wrong email or password")
             response_data = {
@@ -263,16 +259,13 @@ def delete_user():
 
 @app.before_request
 def monitor_before_request():
-
     g.start_time = time.time()
-
-    REQUEST_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path).inc()
+    REQUESTS_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path).inc()
 
 @app.after_request
 def monitor_after_request(response):
-
     if 500 <= response.status_code <= 600:
-        ERROR_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path).inc()
+        ERRORS_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path).inc()
 
     if hasattr(g, 'start_time'):
         duration = time.time() - g.start_time
@@ -281,8 +274,6 @@ def monitor_after_request(response):
     return response
 
 
-
 if __name__ == "__main__":
     init_monitoring()
     app.run(host="0.0.0.0", port=LISTEN_PORT, debug=False)
-
