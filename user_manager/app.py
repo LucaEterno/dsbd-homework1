@@ -1,11 +1,12 @@
 import os
+import time
 import requests
 import mysql.connector
 from mysql.connector import Error
 from flask import request, jsonify, Flask, g
 
 from redis_utils import generate_content_hash, initialize_redis_client, check_idempotency, save_idempotent_response
-from exporter import init_monitoring, REQUEST_COUNT, SERVICE_NAME, NODE_NAME
+from metrics import init_monitoring, SERVICE_NAME, NODE_NAME, REQUEST_COUNT, ERROR_COUNT, RESPONSE_TIME, DB_UPDATE_TIME
 
 app = Flask(__name__)
 initialize_redis_client() # Inizializza redis_client
@@ -31,13 +32,11 @@ def get_db():
         )
     return g.db
 
-
 @app.teardown_appcontext
 def close_db(error):
     db = g.pop("db", None)
     if db is not None:
         db.close()
-
 
 @app.route("/users/register", methods=["POST"])
 def register():
@@ -51,6 +50,7 @@ def register():
       "cf": "CODICEFISCALE"
     }
     """
+
     db = get_db()
     if db is None:
         return jsonify({"error": "Database non connesso"}), 503
@@ -91,12 +91,17 @@ def register():
         return jsonify(body), status
 
     # Esecuzione query
+    start_db = time.time()
     try:
         cursor = db.cursor()
         query = "INSERT INTO users (email, password, cf) VALUES (%s, %s, %s)"
         cursor.execute(query, (email, password, cf))
         db.commit()
         cursor.close()
+
+        # Registrazione durata dell'aggiornamento del db per monitoraggio
+        duration = time.time() - start_db
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="registration").set(duration)
 
         response_data = {
             "message": "Utente registrato con successo",
@@ -108,6 +113,11 @@ def register():
         status_code = 201
 
     except Error as e:
+
+        # Registrazione durata dell'aggiornamento del db per monitoraggio
+        duration = time.time() - start_db
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="registration_failed").set(duration)
+
         # Errore: email duplicata (MySQL error code 1062)
         if e.errno == 1062:
             response_data = {
@@ -126,7 +136,6 @@ def register():
     # Salvataggio in redis e invio risposta
     save_idempotent_response(idempotency_key, status_code, response_data)
     return jsonify(response_data), status_code
-
 
 @app.route("/users/delete", methods=["DELETE"])
 def delete_user():
@@ -175,6 +184,7 @@ def delete_user():
 
 
     # Esecuzione query
+    start_db = time.time()
     try:
         # Controllo che l'utente esista e che la password sia corretta
         cursor = db.cursor()
@@ -182,6 +192,10 @@ def delete_user():
         query_check = "SELECT email FROM users WHERE email = %s AND password = %s FOR UPDATE"
         cursor.execute(query_check, (email, password))
         result = cursor.fetchone()
+
+        # Registrazione durata dell'aggiornamento del db per monitoraggio
+        duration = time.time() - start_db
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="delete_user:check_existence").set(duration)
 
         if not result:
             print(f"[UserManagerApp] FAILED: wrong email or password")
@@ -212,10 +226,15 @@ def delete_user():
                 print(f"[HTTP UserManager] WARNING: impossibile contattare Data Collector per cleanup: {e}")
 
             # Procedo con la cancellazione effettiva dell'utente
+            start_db = time.time()
             query_delete = "DELETE FROM users WHERE email = %s"
             cursor.execute(query_delete, (email,))
             db.commit()
             cursor.close()
+
+            # Registrazione durata dell'aggiornamento del db per monitoraggio
+            duration = time.time() - start_db
+            DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="delete_user").set(duration)
 
             response_data = {
                 "success": True,
@@ -225,6 +244,11 @@ def delete_user():
             status_code = 200
 
     except Exception as e:
+
+        # Registrazione durata dell'aggiornamento del db per monitoraggio
+        duration = time.time() - start_db
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="delete_user:failed").set(duration)
+
         db.rollback()
         response_data = {
             "success": False,
@@ -238,8 +262,25 @@ def delete_user():
     return jsonify(response_data), status_code
 
 @app.before_request
-def count_requests():
-    REQUEST_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME).inc()
+def monitor_before_request():
+
+    g.start_time = time.time()
+
+    REQUEST_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path).inc()
+
+@app.after_request
+def monitor_after_request(response):
+
+    if 500 <= response.status_code <= 600:
+        ERROR_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path).inc()
+
+    if hasattr(g, 'start_time'):
+        duration = time.time() - g.start_time
+        RESPONSE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path).set(duration)
+
+    return response
+
+
 
 if __name__ == "__main__":
     init_monitoring()
