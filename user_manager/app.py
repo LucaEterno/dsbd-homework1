@@ -116,7 +116,7 @@ def register():
 
         # Registrazione durata dell'aggiornamento del db per monitoraggio
         duration = time.time() - start_db
-        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="registration: failed").set(duration)
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="registration: FAILED").set(duration)
 
         # Errore: email duplicata (MySQL error code 1062)
         if e.errno == 1062:
@@ -243,7 +243,7 @@ def delete_user():
 
         # Registrazione durata dell'aggiornamento del db per monitoraggio
         duration = time.time() - start_db
-        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="delete_user:failed").set(duration)
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="delete_user: FAILED").set(duration)
 
         db.rollback()
         response_data = {

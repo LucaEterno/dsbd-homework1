@@ -188,7 +188,7 @@ def add_user_airport():
     except Error as e:
         # Registrazione durata dell'aggiornamento del db per monitoraggio
         duration = time.time() - start_db
-        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="add_user_airport: failed").set(duration)
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="add_user_airport: FAILED").set(duration)
 
         # Se è una chiave duplicata (utente ha già quell'aeroporto), gestiamo l'errore
         if e.errno == 1062:
@@ -308,7 +308,7 @@ def update_user_airport_thresholds():
         if row == 0:
             # Registrazione durata dell'aggiornamento del db per monitoraggio
             duration = time.time() - start_db
-            DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="update_user_airport_thresholds: failed 404").set(duration)
+            DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="update_user_airport_thresholds: FAILED 404").set(duration)
 
             print(f"[DataCollector] FAILED: associazione non esiste per '{email}', '{airport_code}'")
             return jsonify({
@@ -335,7 +335,7 @@ def update_user_airport_thresholds():
     except Error as e:
         # Registrazione durata dell'aggiornamento del db per monitoraggio
         duration = time.time() - start_db
-        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="update_user_airport_thresholds: failed").set(duration)
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="update_user_airport_thresholds: FAILED").set(duration)
 
         print(f"Errore DB in update_user_airport_thresholds: {e}")
         return jsonify({"error": "Database error"}), 500
@@ -407,10 +407,6 @@ def get_user_airports():
         }), 200
 
     except Error as e:
-        # Registrazione durata dell'aggiornamento del db per monitoraggio
-        duration = time.time() - start_db
-        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="get_user_airports failed").set(duration)
-
         print(f"Errore DB in get_user_airports: {e}")
         return jsonify({"error": "Database error"}), 500
 
@@ -509,7 +505,7 @@ def delete_user_airports():
     except Error as e:
         # Registrazione durata dell'aggiornamento del db per monitoraggio
         duration = time.time() - start_db
-        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="delete_user_airports: failed").set(duration)
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="delete_user_airports: FAILED").set(duration)
 
         print(f"Errore DB in delete_user_airports: {e}")
         return jsonify({"error": "Database error"}), 500
@@ -937,17 +933,16 @@ def debug_opensky_cb():
 @app.before_request
 def monitor_before_request():
     g.start_time = time.time()
-    REQUESTS_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path).inc()
+    REQUESTS_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path, method=request.method).inc()
 
 @app.after_request
 def monitor_after_request(response):
     if 500 <= response.status_code <= 600:
-        ERRORS_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path).inc()
+        ERRORS_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path, method=request.method).inc()
 
     if hasattr(g, 'start_time'):
         duration = time.time() - g.start_time
-        RESPONSE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path).set(duration)
-
+        RESPONSE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path, method=request.method).set(duration)
     return response
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ from opensky_auth import get_opensky_token
 from circuit_breaker import CircuitBreaker, CircuitBreakerOpenException
 import requests
 
-from metrics import SERVICE_NAME, NODE_NAME, DB_UPDATE_TIME
+from metrics import SERVICE_NAME, NODE_NAME, DB_UPDATE_TIME, OPENSKY_FETCH_TIME
 
 # Configura il Circuit Breaker per le chiamate OpenSky
 failure_threshold = int(os.getenv("OPENSKY_CB_FAILURE_THRESHOLD", "5"))
@@ -63,13 +63,28 @@ def fetch_flights_from_opensky(airport_code, direction, begin, end):
         # convertiamo in HTTPError (subclass di RequestException) così il CB lo conta come failure
         resp.raise_for_status()
 
+    fetch_time = time.time()
     try:
         flights = opensky_cb.call(_do_request)
+
+        # Registrazione durata del fetch da OpenSky per monitoraggio
+        duration = time.time() - fetch_time
+        OPENSKY_FETCH_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation=f"fetch flights for {airport_code} with direction {direction}").set(duration)
+    
     except CircuitBreakerOpenException:
+        # Registrazione durata del fetch da OpenSky per monitoraggio
+        duration = time.time() - fetch_time
+        OPENSKY_FETCH_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation=f"fetch flights for {airport_code} with direction {direction}: FAILED").set(duration)
+
         # rilanciamo, così lo gestisce il livello sopra (route/logic) con 503
         print("[OpenSky] Circuit OPEN: richiesta negata dal Circuit Breaker")
         raise
+
     except requests.exceptions.RequestException as e:
+        # Registrazione durata del fetch da OpenSky per monitoraggio
+        duration = time.time() - fetch_time
+        OPENSKY_FETCH_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation=f"fetch flights for {airport_code} with direction {direction}: FAILED").set(duration)
+
         # errore rete/HTTP -> viene già conteggiato dal CB
         print(f"[OpenSky] RequestException: {e}")
         raise RuntimeError(f"OpenSky request failed: {e}")
@@ -121,15 +136,20 @@ def store_flights_in_db(conn, airport_code, direction, flights):
             params = (airport_code, direction, icao24, callsign, dt_naive)
             cursor.execute(sql, params)
             inserted += cursor.rowcount
-
         conn.commit()
+
         # Registrazione durata dell'aggiornamento del db per monitoraggio
         duration = time.time() - start_db
-        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation="store_flights_in_db").set(duration)
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation=f"store flights for {airport_code} with direction {direction} in db").set(duration)
+
         print(f"[DataCollector] {inserted} Voli effettivamente inseriti in DB per {airport_code} ({direction})")
         return inserted
 
     except Error as e:
+        # Registrazione durata dell'aggiornamento del db per monitoraggio
+        duration = time.time() - start_db
+        DB_UPDATE_TIME.labels(service=SERVICE_NAME, node=NODE_NAME, operation=f"store flights for {airport_code} with direction {direction} in db: FAILED").set(duration)
+
         print(f"Errore DB in store_flights_in_db: {e}")
         return -1
 
