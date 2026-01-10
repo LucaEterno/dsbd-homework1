@@ -20,8 +20,8 @@ spec:
             - containerPort: 8025 # Porta UI Web
           resources:
             limits:
-              memory: "128Mi"
-              cpu: "200m"
+              memory: "64Mi"
+              cpu: "100m"
 ---
 apiVersion: v1
 kind: Service

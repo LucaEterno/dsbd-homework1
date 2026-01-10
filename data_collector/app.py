@@ -937,7 +937,7 @@ def monitor_before_request():
 
 @app.after_request
 def monitor_after_request(response):
-    if 500 <= response.status_code <= 600:
+    if 500 <= response.status_code < 600:
         ERRORS_COUNT.labels(service=SERVICE_NAME, node=NODE_NAME, endpoint=request.path, method=request.method).inc()
 
     if hasattr(g, 'start_time'):
@@ -952,7 +952,7 @@ if __name__ == "__main__":
 
     # 2. Avvio Flask
     try:
-        app.run(host="0.0.0.0", port=LISTEN_PORT, debug=True, use_reloader=False)
+        app.run(host="0.0.0.0", port=LISTEN_PORT, debug=False, use_reloader=False)
     except KeyboardInterrupt:
         pass
 
