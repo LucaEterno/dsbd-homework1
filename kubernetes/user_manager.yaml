@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user_manager-deployment
+  labels:
+    app: user_manager-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user_manager
+  template:
+    metadata:
+      labels:
+        app: user_manager
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: user_manager
+          image: user_manager:latest # dare questo nome all'immagine
+          imagePullPolicy: Never # da tenere così in produzione e scambiare con IfNotPresent quando sarà pronta
+          ports:
+            - name: user_manager-api-port
+              containerPort: 5003
+            - name: user_manager-metrics-port
+              containerPort: 9999
+          env:
+            - name: MYSQL_HOST
+              value: "user_db-service" # Nome del Service K8s di MySQL
+            - name: MYSQL_PORT
+              value: "3306"
+            - name: MYSQL_DATABASE
+              value: "usermanager_db"
+            - name: MYSQL_USER
+              value: "usermgr"
+            - name: REDIS_HOST
+              value: "redis-service" # Nome del Service K8s di Redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: LISTEN_PORT
+              value: "5003"
+            - name: DATACOLLECTOR_BASE_URL
+              value: "http://data_collector-service:80"
+
+
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: user_db_psw
+                  key: mysql_password
+
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName # Prende il nome del nodo reale dove gira
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: user_manager-service
+  labels:
+    app: user_manager-service
+spec:
+  ports:
+    - name: user_manager-service-api-port
+      protocol: TCP
+      port: 80 # porta del servizio
+      targetPort: 5003 # porta esposta dal container
+    - name: user_manager-service-metrics-port
+      protocol: TCP
+      port: 9999 # porta del servizio
+      targetPort: 9999 # porta esposta dal container
+  selector:
+    app: user_manager

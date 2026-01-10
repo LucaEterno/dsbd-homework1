@@ -56,6 +56,7 @@ services:
       - "50051:50051"
     expose:
       - "5003"
+      - "9999" # per Prometheus
     networks:
       - user_net
       - gRPC_net

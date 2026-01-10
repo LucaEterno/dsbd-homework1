@@ -1,0 +1,79 @@
+# mongo .yaml completo di persistenza
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user_db-deployment
+  labels:
+    app: user_db-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user_db
+  template:
+    metadata:
+      labels:
+        app: user_db
+    spec:
+      containers:
+        - name: user_db
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: user_db_psw
+                  key: mysql_root_password
+            - name: MYSQL_DATABASE
+              value: "usermanager_db"
+            - name: MYSQL_USER
+              value: "usermgr"
+
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                    secretKeyRef:
+                      name: user_db_psw
+                      key: mysql_password
+          # 1. COLLEGA IL VOLUME AL CONTAINER
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+            - name: init-script-volume
+              mountPath: /docker-entrypoint-initdb.d/init_user_db.sql
+              subPath: init_user_db.sql
+
+          # Sostituto del Healthcheck di Docker Compose
+          livenessProbe:
+            exec:
+              command: [ "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$(MYSQL_ROOT_PASSWORD)" ]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command: [ "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$(MYSQL_ROOT_PASSWORD)" ]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+
+      volumes:
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: user_db_pvc
+        - name: init-script-volume
+          configMap:
+            name: user_db_init-script # ConfigMap
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user_db-service
+spec:
+  selector:
+    app: user_db
+  ports:
+    - protocol: TCP
+      port: 3306 # porta esposta dal servizio
+      targetPort: 3306 # porta esposta dal container
