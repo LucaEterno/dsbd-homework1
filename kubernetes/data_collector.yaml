@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-collector-deployment
+  labels:
+    app: data-collector-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: data-collector
+  template:
+    metadata:
+      labels:
+        app: data-collector
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: data-collector
+          image: data-collector:latest # dare questo nome all'immagine
+          imagePullPolicy: Never # da tenere così in produzione e scambiare con IfNotPresent quando sarà pronta
+          ports:
+            - name: api-port
+              containerPort: 5002
+            - name: metrics-port
+              containerPort: 9999
+          env:
+            - name: MYSQL_HOST
+              value: "data-db-service" # Nome del Service K8s di MySQL
+            - name: MYSQL_PORT
+              value: "3306"
+            - name: MYSQL_DATABASE
+              value: "data_db"
+            - name: MYSQL_USER
+              value: "userdt"
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: data-db-psw
+                  key: mysql_password
+            - name: CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: opensky-credentials
+                  key: client_id
+            - name: CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: opensky-credentials
+                  key: client_secret
+            - name: USER_MANAGER_HOST
+              value: "user-manager-service"   # Nome del Service
+            - name: USER_MANAGER_PORT
+              value: "50051"
+            - name: LISTEN_PORT
+              value: "5002"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:9092"    # Nome del Service
+            - name: OPENSKY_CB_FAILURE_THRESHOLD
+              value: "5"
+            - name: OPENSKY_CB_RECOVERY_TIMEOUT
+              value: "10"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName # Prende il nome del nodo reale dove gira
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: data-collector-service
+  labels:
+    app: data-collector-service
+spec:
+  ports:
+    - name: api-port
+      protocol: TCP
+      port: 80 # porta del servizio
+      targetPort: 5002 # porta esposta dal container
+    - name: metrics-port
+      protocol: TCP
+      port: 9999 # porta del servizio
+      targetPort: 9999 # porta esposta dal container
+  selector:
+    app: data-collector

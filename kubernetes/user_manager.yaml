@@ -1,32 +1,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: user_manager-deployment
+  name: user-manager-deployment
   labels:
-    app: user_manager-deployment
+    app: user-manager-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: user_manager
+      app: user-manager
   template:
     metadata:
       labels:
-        app: user_manager
+        app: user-manager
     spec:
       restartPolicy: Always
       containers:
-        - name: user_manager
-          image: user_manager:latest # dare questo nome all'immagine
+        - name: user-manager
+          image: user-manager:latest # dare questo nome all'immagine
           imagePullPolicy: Never # da tenere così in produzione e scambiare con IfNotPresent quando sarà pronta
           ports:
-            - name: user_manager-api-port
+            - name: api-port
               containerPort: 5003
-            - name: user_manager-metrics-port
+            - name: metrics-port
               containerPort: 9999
           env:
             - name: MYSQL_HOST
-              value: "user_db-service" # Nome del Service K8s di MySQL
+              value: "user-db-service" # Nome del Service K8s di MySQL
             - name: MYSQL_PORT
               value: "3306"
             - name: MYSQL_DATABASE
@@ -40,13 +40,13 @@ spec:
             - name: LISTEN_PORT
               value: "5003"
             - name: DATACOLLECTOR_BASE_URL
-              value: "http://data_collector-service:80"
+              value: "http://data-collector-service:80"
 
 
             - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: user_db_psw
+                  name: user-db-psw
                   key: mysql_password
 
             - name: NODE_NAME
@@ -64,18 +64,18 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: user_manager-service
+  name: user-manager-service
   labels:
-    app: user_manager-service
+    app: user-manager-service
 spec:
   ports:
-    - name: user_manager-service-api-port
+    - name: api-port
       protocol: TCP
       port: 80 # porta del servizio
       targetPort: 5003 # porta esposta dal container
-    - name: user_manager-service-metrics-port
+    - name: metrics-port
       protocol: TCP
       port: 9999 # porta del servizio
       targetPort: 9999 # porta esposta dal container
   selector:
-    app: user_manager
+    app: user-manager

@@ -14,14 +14,14 @@ spec:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: user_manager-service
+                name: user-manager-service
                 port:
                   number: 80 # questa è la porta 80 del servizio
           - path: /api/data(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
-                name: data_collector-service
+                name: data-collector-service
                 port:
                   number: 80 # questa è la porta 80 del servizio
 

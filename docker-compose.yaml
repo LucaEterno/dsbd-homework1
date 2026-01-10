@@ -51,7 +51,7 @@ services:
       REDIS_PORT: 6379
       LISTEN_PORT: 5003
       DATACOLLECTOR_BASE_URL: http://data_collector:5002
-      NODE_NAME: placeholder # andrà tolto e sostituito con K8s
+      NODE_NAME: placeholder
     ports:
       - "50051:50051"
     expose:
@@ -112,7 +112,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       OPENSKY_CB_FAILURE_THRESHOLD: 5
       OPENSKY_CB_RECOVERY_TIMEOUT: 30
-      NODE_NAME: placeholder # andrà tolto e sostituito con K8s
+      NODE_NAME: placeholder
     expose:
       - "5002"
     networks:

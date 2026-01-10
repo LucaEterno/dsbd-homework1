@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: user_db_init-script
+  name: user-db-init-script
 data:
   init_user_db.sql: |
     CREATE TABLE IF NOT EXISTS users (

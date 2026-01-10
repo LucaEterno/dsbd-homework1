@@ -25,10 +25,10 @@ nodes:
     labels:
       custom-label: "worker"
     extraPortMappings:
-      - containerPort: 9090 # Porta del servizio nel cluster
-        hostPort: 9090       # Porta sul tuo PC per Prometheus
-      - containerPort: 8025 # Porta del servizio nel cluster
-        hostPort: 8025       # Porta sul tuo PC per Mailhog
+      - containerPort: 30090 # Porta del servizio nel cluster
+        hostPort: 9090       # Porta per Prometheus
+      - containerPort: 30025 # Porta del servizio nel cluster
+        hostPort: 8025       # Porta per Mailhog
 
 networking:
   apiServerAddress: "127.0.0.1"

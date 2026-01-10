@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: user-db-deployment
+  name: data-db-deployment
   labels:
-    app: user-db-deployment
+    app: data-db-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: user-db
+      app: data-db
   template:
     metadata:
       labels:
-        app: user-db
+        app: data-db
     spec:
       containers:
-        - name: user-db
+        - name: data-db
           image: mysql:8.0
           ports:
             - containerPort: 3306
@@ -24,23 +24,23 @@ spec:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: user-db-psw
+                  name: data-db-psw
                   key: mysql_root_password
             - name: MYSQL_DATABASE
-              value: "usermanager_db"
+              value: "data_db"
             - name: MYSQL_USER
-              value: "usermgr"
+              value: "userdt"
             - name: MYSQL_PASSWORD
               valueFrom:
-                    secretKeyRef:
-                      name: user-db-psw
-                      key: mysql_password
+                secretKeyRef:
+                  name: data-db-psw
+                  key: mysql_password
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
             - name: init-script-volume
-              mountPath: /docker-entrypoint-initdb.d/init_user_db.sql
-              subPath: init_user_db.sql
+              mountPath: /docker-entrypoint-initdb.d/init_data_db.sql
+              subPath: init_data_db.sql
 
           # Sostituto del Healthcheck di Docker Compose
           livenessProbe:
@@ -58,19 +58,19 @@ spec:
       volumes:
         - name: mysql-data
           persistentVolumeClaim:
-            claimName: user-db-pvc
+            claimName: data-db-pvc
         - name: init-script-volume
           configMap:
-            name: user-db-init-script # ConfigMap
+            name: data-db-init-script # ConfigMap
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: user-db-service
+  name: data-db-service
 spec:
   selector:
-    app: user-db
+    app: data-db
   ports:
     - protocol: TCP
       port: 3306 # porta esposta dal servizio

@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-setup-topics
+spec:
+  template:
+    spec:
+      containers:
+        - name: topic-creator
+          image: confluentinc/cp-kafka:7.4.0
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              echo "Waiting for Kafka..."
+              until /usr/bin/kafka-broker-api-versions --bootstrap-server kafka-service:9092 >/dev/null 2>&1; do
+                sleep 2
+              done
+              echo "Kafka ready. Creating topics..."
+              /usr/bin/kafka-topics --create --topic to-alert-system --if-not-exists --bootstrap-server kafka-service:9092 --partitions 1 --replication-factor 1
+              /usr/bin/kafka-topics --create --topic to-notifier --if-not-exists --bootstrap-server kafka-service:9092 --partitions 1 --replication-factor 1
+              echo "Done."
+      restartPolicy: OnFailure

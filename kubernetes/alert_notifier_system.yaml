@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alert-notifier-deployment
+  labels:
+    app: alert-notifier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alert-notifier
+  template:
+    metadata:
+      labels:
+        app: alert-notifier
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: alert-notifier
+          image: alert-notifier:latest
+          imagePullPolicy: Never
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:9092"
+            - name: SMTP_SERVER
+              value: "mailhog-service"
+            - name: SMTP_PORT
+              value: "1025"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
