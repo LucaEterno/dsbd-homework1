@@ -22,6 +22,8 @@ spec:
           ports:
             - name: api-port
               containerPort: 5003
+            - name: grpc-port
+              containerPort: 50051
             - name: metrics-port
               containerPort: 9999
           env:
@@ -53,6 +55,18 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName # Prende il nome del nodo reale dove gira
+
+          readinessProbe:
+            tcpSocket:
+              port: 5003
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 5003
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
           resources:
             requests:
               cpu: 100m
@@ -73,6 +87,10 @@ spec:
       protocol: TCP
       port: 80 # porta del servizio
       targetPort: 5003 # porta esposta dal container
+    - name: grpc-port
+      protocol: TCP
+      port: 50051
+      targetPort: 50051
     - name: metrics-port
       protocol: TCP
       port: 9999 # porta del servizio

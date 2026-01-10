@@ -20,6 +20,7 @@ IMAGES = [
 # 2. Lista manifest ordinata per dipendenze
 MANIFESTS = [
     f"{K8S_PATH}/ingress-controller.yaml",
+    f"{K8S_PATH}/tls-secrets.yaml",
     f"{K8S_PATH}/user_db_secrets.yaml",
     f"{K8S_PATH}/data_db_secrets.yaml",
     f"{K8S_PATH}/opensky_credentials.yaml",

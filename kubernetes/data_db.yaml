@@ -46,7 +46,7 @@ spec:
           livenessProbe:
             exec:
               command: [ "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$(MYSQL_ROOT_PASSWORD)" ]
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
           readinessProbe:
