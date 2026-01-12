@@ -57,6 +57,13 @@ spec:
           volumeMounts:
             - name: kafka-storage
               mountPath: /var/lib/kafka/data
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 1Gi
       volumes:
         - name: kafka-storage
           persistentVolumeClaim:

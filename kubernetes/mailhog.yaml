@@ -19,9 +19,13 @@ spec:
             - containerPort: 1025 # Porta SMTP
             - containerPort: 8025 # Porta UI Web
           resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
             limits:
-              memory: "64Mi"
-              cpu: "100m"
+              cpu: 50m
+              memory: 64Mi
+
 ---
 apiVersion: v1
 kind: Service

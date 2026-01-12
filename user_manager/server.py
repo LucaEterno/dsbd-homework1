@@ -38,7 +38,7 @@ class UserManagerService(user_manager_pb2_grpc.UserManagerServicer):
     """
 
     def __init__(self):
-        MAX_RETRIES = 10
+        MAX_RETRIES = 35
         RETRY_DELAY = 3 # Secondi
 
         for attempt in range(MAX_RETRIES):
