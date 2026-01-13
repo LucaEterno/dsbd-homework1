@@ -78,7 +78,7 @@ def wait_for_ingress_ready():
         print("--- Ingress Controller PRONTO! ---")
         time.sleep(2) # Pausa di respiro per il sistema
     except subprocess.CalledProcessError:
-        print("\n[ERRORE] L'Ingress Controller non è partito in tempo.")
+        print("\n[ERRORE] L'Ingress Controller non è partito in tempo. \nVerifica stato: kubectl get pods")
         sys.exit(1)
 
 def apply_manifests(manifest_list):
@@ -88,7 +88,7 @@ def apply_manifests(manifest_list):
         else:
             print(f"(!) File saltato: {path}")
 
-def wait_for_deployments_ready(timeout="300s"):
+def wait_for_deployments_ready(timeout="480s"):
     print("\nAttendo che tutti i Deployment siano Ready...")
     cmd = (
         f"kubectl wait "
@@ -100,7 +100,7 @@ def wait_for_deployments_ready(timeout="300s"):
         subprocess.run(cmd, shell=True, check=True)
         print("--- Tutti i Deployment sono READY ---")
     except subprocess.CalledProcessError:
-        print("\n[ERRORE] Timeout: alcuni Deployment non sono pronti.")
+        print("\n[ERRORE] Timeout: alcuni Deployment non sono pronti. \nVerifica stato: kubectl get pods")
         sys.exit(1)
 
 def wait_for_kafka_job_completed(timeout="300s"):
@@ -115,7 +115,7 @@ def wait_for_kafka_job_completed(timeout="300s"):
         subprocess.run(cmd, shell=True, check=True)
         print("--- Job kafka-setup-topics COMPLETATO ---")
     except subprocess.CalledProcessError:
-        print("\n[ERRORE] Il Job kafka-setup-topics non è terminato.")
+        print("\n[ERRORE] Il Job kafka-setup-topics non è terminato. \nVerifica stato: kubectl get pods")
         sys.exit(1)
 
 def print_pods_status():
@@ -133,11 +133,11 @@ def print_pods_status():
         )
         print(result.stdout)
     except subprocess.CalledProcessError:
-        print("[ERRORE] Impossibile ottenere lo stato dei pod.")
+        print("[ERRORE] Impossibile ottenere lo stato dei pod. \nVerifica stato: kubectl get pods")
 
 def main():
     # 1. Cluster KIND
-    print("--- 1. Creazione Cluster KIND ---")
+    print(f"--- 1. Creazione Cluster KIND --- Tempo: {time.strftime('%H:%M:%S', time.gmtime(time.time()))}")
     result = subprocess.run("kind get clusters", shell=True, capture_output=True, text=True)
     if CLUSTER_NAME not in result.stdout:
         run_cmd(f"kind create cluster --config {KIND_CONFIG} --name {CLUSTER_NAME}")
@@ -171,7 +171,7 @@ def main():
     wait_for_kafka_job_completed()
 
     print("\n" + "="*60)
-    print(" SISTEMA PRONTO!")
+    print(f"SISTEMA PRONTO! Tempo: {time.strftime('%H:%M:%S', time.gmtime(time.time()))}")
     print("="*60)
 
     print_pods_status()

@@ -1,6 +1,6 @@
-# API Documentation - DSBD Homework 1 & 2
+# API Documentation - DSBD Homework 3
 
-Documentazione completa delle API REST e gRPC del sistema con sistema di alert.
+Documentazione completa delle API REST e gRPC del sistema.
 
 ## Indice
 - [API Gateway](#api-gateway)
@@ -12,33 +12,17 @@ Documentazione completa delle API REST e gRPC del sistema con sistema di alert.
 
 ---
 
-## API Gateway
-
-**Nuova funzionalità Homework 2**: Tutti gli endpoint sono accessibili tramite Nginx API Gateway.
-
 ### URL di accesso
 
 **HTTP** (porta 8080):
-- User Manager: `http://localhost:8080/api/users/`
-- Data Collector: `http://localhost:8080/api/data/`
+- User Manager: `http://progettoeternograsso.com/api/users/`
+- Data Collector: `http://progettoeternograsso.com/api/data/`
 
 **HTTPS** (porta 8443) - Certificati self-signed:
-- User Manager: `https://localhost:8443/api/users/`
-- Data Collector: `https://localhost:8443/api/data/`
-
-### Healthcheck
-```bash
-curl http://localhost:8080/health
-# Risposta: ok
-```
-
-**Nota**: Gli esempi seguenti usano le porte dirette dei servizi per semplicità, ma in produzione si dovrebbe usare il Gateway.
-
----
+- User Manager: `https://progettoeternograsso.com/api/users/`
+- Data Collector: `https://progettoeternograsso.com/api/data/`
 
 ## User Manager REST API
-
-Base URL: `http://localhost:5003`
 
 ### POST /users/register
 
@@ -97,7 +81,7 @@ requestID: <unique-request-identifier>  (OBBLIGATORIO)
 
 #### Esempio
 ```bash
-curl -X POST http://localhost:5003/users/register \
+curl -X POST http://progettoeternograsso.com/api/users/users/register \
   -H "Content-Type: application/json" \
   -H "requestID: req-001-20251130" \
   -d '{
@@ -157,7 +141,7 @@ requestID: <unique-request-identifier>  (OBBLIGATORIO)
 
 #### Esempio
 ```bash
-curl -X DELETE http://localhost:5003/users/delete \
+curl -X DELETE http://progettoeternograsso.com/api/users/users/delete \
   -H "Content-Type: application/json" \
   -H "requestID: req-002-20251130" \
   -d '{
@@ -170,13 +154,9 @@ curl -X DELETE http://localhost:5003/users/delete \
 
 ## Data Collector REST API
 
-Base URL: `http://localhost:5002`
-
 ### POST /user/airports
 
 Aggiunge un aeroporto di interesse per un utente con soglie di monitoraggio opzionali.
-
-**Novità Homework 2**: Parametri `high_value` e `low_value` per configurare alert automatici.
 
 #### Request Body
 ```json
@@ -238,7 +218,7 @@ Aggiunge un aeroporto di interesse per un utente con soglie di monitoraggio opzi
 
 #### Esempio
 ```bash
-curl -X POST http://localhost:5002/user/airports \
+curl -X POST http://progettoeternograsso.com/api/data/user/airports \
   -H "Content-Type: application/json" \
   -d '{
     "email": "mario.rossi@example.com",
@@ -253,7 +233,7 @@ curl -X POST http://localhost:5002/user/airports \
 
 ### PUT /user/airports
 
-**[NUOVO - Homework 2]** Modifica le soglie di monitoraggio per un aeroporto già associato all'utente.
+Modifica le soglie di monitoraggio per un aeroporto già associato all'utente.
 
 #### Request Body
 ```json
@@ -310,7 +290,7 @@ curl -X POST http://localhost:5002/user/airports \
 
 #### Esempio
 ```bash
-curl -X PUT http://localhost:5002/user/airports \
+curl -X PUT http://progettoeternograsso.com/api/data/user/airports \
   -H "Content-Type: application/json" \
   -d '{
     "email": "mario.rossi@example.com",
@@ -323,77 +303,6 @@ curl -X PUT http://localhost:5002/user/airports \
 
 ---
 
-### GET /user/airports
-
-**[NUOVO - Homework 2]** Modifica le soglie di monitoraggio per un aeroporto già associato all'utente.
-
-#### Request Body
-```json
-{
-  "email": "string (required)",
-  "password": "string (required)",
-  "airport_code": "string (required)",
-  "high_value": "integer (optional)",
-  "low_value": "integer (optional)"
-}
-```
-
-**Vincoli**:
-- Almeno uno tra `high_value` e `low_value` deve essere fornito
-- Se entrambi presenti: `high_value` deve essere > `low_value`
-- L'associazione utente-aeroporto deve già esistere
-
-#### Responses
-
-**200 OK** - Soglie aggiornate
-```json
-{
-  "success": true,
-  "message": "thresholds updated",
-  "email": "mario.rossi@example.com",
-  "airport_code": "LICC",
-  "high_value": 60,
-  "low_value": 20
-}
-```
-
-**401 Unauthorized** - Credenziali non valide
-```json
-{
-  "success": false,
-  "message": "invalid credentials"
-}
-```
-
-**404 Not Found** - Associazione non esistente
-```json
-{
-  "success": false,
-  "message": "user_airport association does not exist"
-}
-```
-
-**400 Bad Request** - Parametri invalidi
-```json
-{
-  "error": "high_value must be strictly greater than low_value"
-}
-```
-
-#### Esempio
-```bash
-curl -X PUT http://localhost:5002/user/airports \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "mario.rossi@example.com",
-    "password": "securepass123",
-    "airport_code": "LICC",
-    "high_value": 60,
-    "low_value": 20
-  }'
-```
-
----
 
 ### GET /user/airports
 
@@ -440,7 +349,7 @@ Restituisce la lista degli aeroporti di interesse per un utente con le soglie co
 
 #### Esempio
 ```bash
-curl "http://localhost:5002/user/airports?email=mario.rossi@example.com"
+curl "http://progettoeternograsso.com/api/data/user/airports?email=mario.rossi@example.com"
 ```
 
 ---
@@ -483,7 +392,7 @@ Rimuove associazioni utente-aeroporto.
 #### Esempi
 ```bash
 # Rimuove un aeroporto specifico
-curl -X DELETE http://localhost:5002/user/airports \
+curl -X DELETE http://progettoeternograsso.com/api/data/user/airports \
   -H "Content-Type: application/json" \
   -d '{
     "email": "mario.rossi@example.com",
@@ -492,7 +401,7 @@ curl -X DELETE http://localhost:5002/user/airports \
   }'
 
 # Rimuove tutti gli aeroporti dell'utente
-curl -X DELETE http://localhost:5002/user/airports \
+curl -X DELETE http://progettoeternograsso.com/api/data/user/airports \
   -H "Content-Type: application/json" \
   -d '{
     "email": "mario.rossi@example.com",
@@ -545,7 +454,7 @@ Restituisce tutti i voli registrati per gli aeroporti di interesse di un utente.
 
 #### Esempio
 ```bash
-curl "http://localhost:5002/user/flights?email=mario.rossi@example.com"
+curl "http://progettoeternograsso.com/api/data/user/flights?email=mario.rossi@example.com"
 ```
 
 ---
@@ -600,7 +509,7 @@ Restituisce l'ultimo volo in arrivo e l'ultimo in partenza per un aeroporto spec
 
 #### Esempio
 ```bash
-curl "http://localhost:5002/user/flights/last?email=mario.rossi@example.com&airport_code=LICC"
+curl "http://progettoeternograsso.com/api/data/user/flights/last?email=mario.rossi@example.com&airport_code=LICC"
 ```
 
 ---
@@ -650,7 +559,7 @@ Calcola la media di voli giornalieri in arrivo e partenza per un aeroporto negli
 
 #### Esempio
 ```bash
-curl "http://localhost:5002/user/flights/average?email=mario.rossi@example.com&airport_code=LICC&days=7"
+curl "http://progettoeternograsso.com/api/data/user/flights/average?email=mario.rossi@example.com&airport_code=LICC&days=7"
 ```
 
 ---
@@ -700,7 +609,7 @@ Aggiorna manualmente i dati sui voli per un aeroporto specifico.
 
 #### Esempio
 ```bash
-curl -X POST http://localhost:5002/airport/LICC/refresh-flights \
+curl -X POST http://progettoeternograsso.com/api/data/airport/LICC/refresh-flights \
   -H "Content-Type: application/json" \
   -d '{
     "hours": 12,
@@ -712,7 +621,7 @@ curl -X POST http://localhost:5002/airport/LICC/refresh-flights \
 
 ### GET /debug/opensky-cb
 
-**[NUOVO - Homework 2]** Endpoint di debug per monitorare lo stato del Circuit Breaker OpenSky API.
+Endpoint di debug per monitorare lo stato del Circuit Breaker OpenSky API.
 
 #### Responses
 
@@ -734,14 +643,14 @@ curl -X POST http://localhost:5002/airport/LICC/refresh-flights \
 
 #### Esempio
 ```bash
-curl http://localhost:5002/debug/opensky-cb
+curl http://progettoeternograsso.com/api/data/debug/opensky-cb
 ```
 
 ---
 
 ## Sistema di Alert
 
-**[NUOVO - Homework 2]** Sistema automatico di monitoraggio e notifica basato su Kafka.
+Sistema automatico di monitoraggio e notifica basato su Kafka.
 
 ### Architettura del Sistema
 
@@ -797,7 +706,7 @@ Data Collector → Kafka (to-alert-system) → Alert System → Kafka (to-notifi
 
 ### MailHog - Visualizzazione Email
 
-**URL Web UI**: `http://localhost:8025`
+**URL Web UI**: `http://progettoeternograsso.com:8025`
 
 Tutte le email inviate dal sistema vengono catturate da MailHog e sono visualizzabili tramite interfaccia web.
 
@@ -816,7 +725,7 @@ SUPERA SOGLIA MAX (Voli: 55 >= Max: 50)
 
 ```bash
 # 1. Registrazione utente
-curl -X POST http://localhost:5003/users/register \
+curl -X POST http://progettoeternograsso.com/api/users/users/register \
   -H "Content-Type: application/json" \
   -H "requestID: req-001" \
   -d '{
@@ -826,7 +735,7 @@ curl -X POST http://localhost:5003/users/register \
   }'
 
 # 2. Aggiungi aeroporto con soglie
-curl -X POST http://localhost:5002/user/airports \
+curl -X POST http://progettoeternograsso.com/api/data/user/airports \
   -H "Content-Type: application/json" \
   -d '{
     "email": "mario.rossi@example.com",
@@ -837,14 +746,14 @@ curl -X POST http://localhost:5002/user/airports \
   }'
 
 # 3. Forza aggiornamento voli (trigger alert se soglie superate)
-curl -X POST http://localhost:5002/airport/LICC/refresh-flights \
+curl -X POST http://progettoeternograsso.com/api/data/airport/LICC/refresh-flights \
   -H "Content-Type: application/json" \
   -d '{
     "hours": 12,
     "direction": "both"
   }'
 
-# 4. Controlla email su MailHog: http://localhost:8025
+# 4. Controlla email su MailHog: http://progettoeternograsso.com:8025
 ```
 
 ### Kafka Topics
@@ -887,8 +796,6 @@ Parametri configurabili via environment variables:
 
 ## User Manager gRPC API
 
-Host: `localhost:50051`
-
 ### CheckUserExists
 
 Verifica se un utente esiste tramite email.
@@ -905,23 +812,6 @@ message CheckUserExistsRequest {
 message CheckUserExistsResponse {
   bool exists = 1;
 }
-```
-
-#### Esempio (Python)
-```python
-import grpc
-import user_manager_pb2
-import user_manager_pb2_grpc
-
-channel = grpc.insecure_channel("localhost:50051")
-stub = user_manager_pb2_grpc.UserManagerStub(channel)
-
-request = user_manager_pb2.CheckUserExistsRequest(
-    email="mario.rossi@example.com"
-)
-response = stub.CheckUserExists(request)
-
-print(f"User exists: {response.exists}")
 ```
 
 ---
@@ -943,24 +833,6 @@ message CheckUserCredentialsRequest {
 message CheckUserCredentialsResponse {
   bool valid = 1;
 }
-```
-
-#### Esempio (Python)
-```python
-import grpc
-import user_manager_pb2
-import user_manager_pb2_grpc
-
-channel = grpc.insecure_channel("localhost:50051")
-stub = user_manager_pb2_grpc.UserManagerStub(channel)
-
-request = user_manager_pb2.CheckUserCredentialsRequest(
-    email="mario.rossi@example.com",
-    password="securepass123"
-)
-response = stub.CheckUserCredentials(request)
-
-print(f"Credentials valid: {response.valid}")
 ```
 
 ---
@@ -1028,26 +900,169 @@ Le operazioni `POST /users/register` e `DELETE /users/delete` sono idempotent tr
 
 ```bash
 # Prima richiesta - Successo
-curl -X POST http://localhost:5003/users/register \
+curl -X POST http://progettoeternograsso.com/api/users/users/register \
   -H "requestID: req-123" \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"pwd","cf":"CF123"}'
 # Risposta: 201 Created
 
 # Seconda richiesta (stesso requestID e body) entro 3 minuti
-curl -X POST http://localhost:5003/users/register \
+curl -X POST http://progettoeternograsso.com/api/users/users/register \
   -H "requestID: req-123" \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"pwd","cf":"CF123"}'
 # Risposta: 201 Created (dalla cache, operazione non ripetuta)
 
 # Terza richiesta (stesso requestID ma body diverso)
-curl -X POST http://localhost:5003/users/register \
+curl -X POST http://progettoeternograsso.com/api/users/users/register \
   -H "requestID: req-123" \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"different","cf":"CF123"}'
 # Risposta: 400/409 (nuovo hash, quindi trattata come nuova richiesta)
 ```
+---
+
+## Prometheus Metrics API
+
+Endpoint di esposizione metriche per monitoring white-box.
+
+### GET /metrics (User Manager)
+
+Espone metriche in formato Prometheus per il microservizio User Manager.
+
+#### Response Format
+
+Formato testuale Prometheus:
+
+```shell
+# HELP http_requests_total Total HTTP Requests
+# TYPE http_requests_total counter
+http_requests_total{endpoint="/users/register",node="myapp-worker",service="user_manager"} 145.0
+http_requests_total{endpoint="/users/delete",node="myapp-worker",service="user_manager"} 23.0
+
+# HELP errors_total Total Errors
+# TYPE errors_total counter
+errors_total{endpoint="/users/register",node="myapp-worker",service="user_manager"} 2.0
+
+# HELP response_time Response time to the last request in seconds
+# TYPE response_time gauge
+response_time{endpoint="/users/register",node="myapp-worker",service="user_manager"} 0.0234
+response_time{endpoint="/users/delete",node="myapp-worker",service="user_manager"} 0.0156
+
+# HELP db_update_time Tempo impiegato per l'aggiornamento del database
+# TYPE db_update_time gauge
+db_update_time{node="myapp-worker",operation="registration",service="user_manager"} 0.0123
+db_update_time{node="myapp-worker",operation="delete_user",service="user_manager"} 0.0089
+
+```
+
+### GET /metrics (Data Collector)
+
+Espone metriche in formato Prometheus per il microservizio Data Collector.
+
+#### Response Format
+
+Formato testuale Prometheus:
+
+```shell
+
+# HELP http_requests_total Total HTTP Requests
+# TYPE http_requests_total counter
+http_requests_total{endpoint="/user/airports",method="POST",node="myapp-control-plane",service="data_collector"} 87.0
+http_requests_total{endpoint="/user/flights",method="GET",node="myapp-control-plane",service="data_collector"} 234.0
+
+# HELP errors_total Total Errors
+# TYPE errors_total counter
+errors_total{endpoint="/user/airports",method="POST",node="myapp-control-plane",service="data_collector"} 5.0
+
+# HELP response_time Response time to the last request in seconds
+# TYPE response_time gauge
+response_time{endpoint="/user/airports",method="POST",node="myapp-control-plane",service="data_collector"} 0.0456
+
+# HELP db_update_time Tempo impiegato per l'aggiornamento del database
+# TYPE db_update_time gauge
+db_update_time{node="myapp-control-plane",operation="add_user_airport",service="data_collector"} 0.0234
+db_update_time{node="myapp-control-plane",operation="update_user_airport_thresholds",service="data_collector"} 0.0198
+
+# HELP opensky_fetch_time Tempo impiegato per il recupero dei dati da OpenSky
+# TYPE opensky_fetch_time gauge
+opensky_fetch_time{node="myapp-control-plane",operation="refresh_flights",service="data_collector"} 1.234
+
+Nota: Data Collector include anche la label method (GET, POST, PUT, DELETE) nelle metriche HTTP.
+```
+---
+
+### Prometheus Query Endpoint
+
+Base URL: http://localhost:9090 (Kubernetes con Kind)
+
+#### GET /api/v1/query
+
+Esegue query PromQL per interrogare le metriche.
+
+Query Parameters:
+- query: Espressione PromQL (required)
+- time: Timestamp Unix (optional, default: now)
+
+Esempi di query:
+
+```bash
+# Tasso di richieste al secondo per user_manager
+curl -G 'http://localhost:9090/api/v1/query' \
+--data-urlencode 'query=rate(http_requests_total{service="user_manager"}[5m])'
+
+# Response time medio del data_collector
+curl -G 'http://localhost:9090/api/v1/query' \
+--data-urlencode 'query=avg(response_time{service="data_collector"})'
+
+# Conteggio errori per endpoint
+curl -G 'http://localhost:9090/api/v1/query' \
+--data-urlencode 'query=sum by (endpoint) (errors_total)'
+
+# Percentuale di errori
+curl -G 'http://localhost:9090/api/v1/query' \
+--data-urlencode 'query=rate(errors_total[5m])/rate(http_requests_total[5m])*100'
+```
+
+#### GET /api/v1/query_range
+
+Esegue query PromQL su un intervallo di tempo.
+
+Query Parameters:
+- query: Espressione PromQL (required)
+- start: Timestamp Unix inizio (required)
+- end: Timestamp Unix fine (required)
+- step: Intervallo di campionamento (required, es. "15s")
+
+Esempio:
+curl -G 'http://localhost:9090/api/v1/query_range' \
+--data-urlencode 'query=rate(http_requests_total[5m])' \
+--data-urlencode 'start=1673000000' \
+--data-urlencode 'end=1673003600' \
+--data-urlencode 'step=15s'
+
+---
+
+### Metriche Disponibili
+
+#### Metriche COUNTER
+
+| Metrica | Descrizione | Label | Servizi |
+|---------|-------------|-------|----------|
+| http_requests_total | Richieste HTTP totali | service, node, endpoint, method* | user_manager, data_collector |
+| errors_total | Errori HTTP 5xx totali | service, node, endpoint, method* | user_manager, data_collector |
+
+*Label method solo su data_collector
+
+#### Metriche GAUGE
+
+| Metrica | Descrizione | Label | Servizi |
+|---------|-------------|-------|----------|
+| response_time | Tempo risposta ultimo richiesta (s) | service, node, endpoint, method* | user_manager, data_collector |
+| db_update_time | Tempo aggiornamento DB (s) | service, node, operation | user_manager, data_collector |
+| opensky_fetch_time | Tempo fetch OpenSky API (s) | service, node, operation | data_collector |
+
+*Label method solo su data_collector
 
 ---
 
